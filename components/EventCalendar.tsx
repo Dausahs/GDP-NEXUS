@@ -19,7 +19,7 @@ const localizer = dateFnsLocalizer({
   locales,
 })
 
-export default function EventCalendar({ tasks, currentUserId }: { tasks: any[], teamMembers: any[], currentUserId?: string }) {
+export default function EventCalendar({ tasks, teamMembers, currentUserId }: { tasks: any[], teamMembers: any[], currentUserId?: string }) {
     const [selectedTask, setSelectedTask] = useState<any>(null)
     const [date, setDate] = useState(new Date())
     const [view, setView] = useState<any>('month')
@@ -115,6 +115,7 @@ export default function EventCalendar({ tasks, currentUserId }: { tasks: any[], 
                     task={selectedTask} 
                     eventId={selectedTask.event_id} 
                     onClose={() => setSelectedTask(null)} 
+                    teamMembers={teamMembers}
                 />
             )}
             

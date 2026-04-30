@@ -98,6 +98,8 @@ export async function GET(request: Request) {
                 continue
             }
             
+            const event = (asset.events as any)[0]
+            
             // Send Email via Resend
             if (process.env.RESEND_API_KEY) {
                 await resend.emails.send({
@@ -105,8 +107,8 @@ export async function GET(request: Request) {
                     to: profile.email,
                     subject: `⚠️ Overdue Gear Alert: Please return ${asset.name}`,
                     html: `<p>Hi ${profile.full_name},</p>
-                           <p>Our records show you checked out the <strong>${asset.name}</strong> for the event "${asset.events.title}".</p>
-                           <p>That event concluded on ${new Date(asset.events.end_date).toLocaleDateString()}. Please return the gear to the Inventory immediately.</p>
+                           <p>Our records show you checked out the <strong>${asset.name}</strong> for the event "${event?.title || 'Unknown Event'}".</p>
+                           <p>That event concluded on ${event?.end_date ? new Date(event.end_date).toLocaleDateString() : 'N/A'}. Please return the gear to the Inventory immediately.</p>
                            <p>- The Autopilot</p>`
                 })
             }

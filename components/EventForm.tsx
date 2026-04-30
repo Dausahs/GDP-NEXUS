@@ -6,7 +6,7 @@ import { createEvent, type EventFormState } from '@/app/actions/events'
 
 const initialState: EventFormState = {}
 
-export default function EventForm({ users }: { users: any[] }) {
+export default function EventForm({ users, mtId }: { users: any[], mtId?: string }) {
     const [state, formAction, isPending] = useActionState(createEvent, initialState)
 
     const departments = [
@@ -116,6 +116,7 @@ export default function EventForm({ users }: { users: any[] }) {
                                 <select 
                                     name={dept.name} 
                                     required 
+                                    defaultValue={dept.name === 'picId' ? mtId : ''}
                                     className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-neon transition-all appearance-none cursor-pointer font-medium"
                                 >
                                     <option value="" className="bg-[#161B22]">Select Lead...</option>
