@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { addTaskComment, updateTask, deleteTask } from '@/app/actions/tasks'
 
-export default function TaskDetailsModal({ task, eventId, userRole, onClose }: { task: any, eventId: string, userRole?: string, onClose: () => void }) {
+export default function TaskDetailsModal({ task, eventId, userRole, onClose, teamMembers }: { task: any, eventId: string, userRole?: string, onClose: () => void, teamMembers: any[] }) {
     const [isPending, setIsPending] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const [title, setTitle] = useState(task.title)
     const [description, setDescription] = useState(task.description || '')
     const [deadline, setDeadline] = useState(task.deadline ? task.deadline.split('T')[0] : '')
+    const [selectedAssignees, setSelectedAssignees] = useState<string[]>(task.task_assignees?.map((a: any) => a.user_id) || [])
 
     async function handleComment(formData: FormData) {
         setIsPending(true)
@@ -25,7 +26,7 @@ export default function TaskDetailsModal({ task, eventId, userRole, onClose }: {
     async function handleUpdateTask() {
         setIsPending(true)
         try {
-            await updateTask(task.id, eventId, title, task.department, description, deadline)
+            await updateTask(task.id, eventId, title, task.department, description, deadline, selectedAssignees)
             setIsEditing(false)
         } catch (error) {
             alert('Failed to update task')
@@ -130,13 +131,53 @@ export default function TaskDetailsModal({ task, eventId, userRole, onClose }: {
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white outline-none focus:border-cyan-neon transition-all"
                                 />
                             </div>
+
+                            <div>
+                                <label className="block text-[10px] font-mono font-bold text-white/30 uppercase tracking-[0.2em] mb-3">Assign Team Members</label>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 max-h-[150px] overflow-y-auto custom-scrollbar space-y-1">
+                                    {teamMembers?.map((member) => (
+                                        <label key={member.user_id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedAssignees.includes(member.user_id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedAssignees(prev => [...prev, member.user_id])
+                                                    } else {
+                                                        setSelectedAssignees(prev => prev.filter(id => id !== member.user_id))
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-white/10 bg-transparent text-cyan-neon focus:ring-cyan-neon/50"
+                                            />
+                                            <span className="text-xs font-medium text-white/60 group-hover:text-white transition-colors">{member.profiles?.full_name}</span>
+                                        </label>
+                                    ))}
+                                    {(!teamMembers || teamMembers.length === 0) && (
+                                        <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest text-center py-4">No team data found</p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     ) : (
-                        <div className="relative p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
-                            <div className="absolute top-0 right-8 transform -translate-y-1/2 bg-background px-3 text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">Briefing</div>
-                            <p className="text-base text-white/70 leading-relaxed font-medium italic">
-                                {task.description || <span className="opacity-30">No briefing data available for this objective.</span>}
-                            </p>
+                        <div className="space-y-6">
+                            <div className="relative p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                                <div className="absolute top-0 right-8 transform -translate-y-1/2 bg-background px-3 text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">Briefing</div>
+                                <p className="text-base text-white/70 leading-relaxed font-medium italic">
+                                    {task.description || <span className="opacity-30">No briefing data available for this objective.</span>}
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                {task.task_assignees?.length > 0 ? (
+                                    task.task_assignees.map((assignee: any) => (
+                                        <span key={assignee.user_id} className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-mono font-bold text-white/60 uppercase tracking-widest">
+                                            {assignee.profiles?.full_name}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">No assigned personnel.</span>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -22,7 +22,7 @@ export default async function CreateEventPage() {
     // 3. Fetch all users to populate the Lead dropdowns
     const { data: users } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, role')
         .order('full_name', { ascending: true })
 
     return (

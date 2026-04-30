@@ -7,13 +7,15 @@ import { KanbanColumn } from './KanbanColumn'
 import { updateTaskStatus } from '@/app/actions/tasks'
 
 const COLUMNS = [
+  { id: 'Requested', title: 'Requested' },
   { id: 'Pending', title: 'Backlog' },
   { id: 'Ongoing', title: 'Ongoing' },
   { id: 'QC', title: 'Quality Check' },
-  { id: 'Delivered', title: 'Delivered' }
+  { id: 'Delivered', title: 'Delivered' },
+  { id: 'Rejected', title: 'Rejected' }
 ]
 
-export default function KanbanBoard({ initialTasks, eventId, userRole }: { initialTasks: any[], eventId: string, userRole?: string }) {
+export default function KanbanBoard({ initialTasks, eventId, userRole, teamMembers }: { initialTasks: any[], eventId: string, userRole?: string, teamMembers: any[] }) {
   const [tasks, setTasks] = useState(initialTasks)
   const [isMounted, setIsMounted] = useState(false)
 
@@ -35,6 +37,14 @@ export default function KanbanBoard({ initialTasks, eventId, userRole }: { initi
       } 
     })
   )
+
+  const isManagement = userRole === 'MT' || userRole === 'organizer'
+  const visibleColumns = COLUMNS.filter(col => {
+    if (col.id === 'Requested' || col.id === 'Rejected') {
+      return isManagement
+    }
+    return true
+  })
 
   if (!isMounted) {
     return (
@@ -76,17 +86,21 @@ export default function KanbanBoard({ initialTasks, eventId, userRole }: { initi
       collisionDetection={closestCorners} 
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
-          <KanbanColumn 
-            key={col.id} 
-            id={col.id} 
-            title={col.title} 
-            tasks={tasks.filter(t => t.status === col.id)} 
-            eventId={eventId}
-            userRole={userRole}
-          />
-        ))}
+      <div className="overflow-x-auto pb-6 -mx-4 px-4 custom-scrollbar">
+        <div className={`flex gap-6 ${isManagement ? 'min-w-[1500px]' : 'min-w-[1000px]'} lg:min-w-full`}>
+          {visibleColumns.map((col) => (
+            <div key={col.id} className="flex-1 min-w-[280px] md:min-w-[320px]">
+              <KanbanColumn 
+                id={col.id} 
+                title={col.title} 
+                tasks={tasks.filter(t => t.status === col.id)} 
+                eventId={eventId}
+                userRole={userRole}
+                teamMembers={teamMembers}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </DndContext>
   )

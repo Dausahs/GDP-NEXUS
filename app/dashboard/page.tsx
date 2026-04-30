@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { signOut } from '@/app/actions/auth'
 import GlobalCalendar from '@/components/GlobalCalendar'
 import UpcomingObjectives from '@/components/UpcomingObjectives'
+import GlobalSchedule from '@/components/GlobalSchedule'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -12,7 +13,6 @@ export default async function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/')
 
-    // 1. Fetch the user's profile to check their role
     const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, role')
@@ -25,8 +25,8 @@ export default async function DashboardPage() {
         .select('id, title, description, end_date')
         .order('end_date', { ascending: true })
 
-    // If Penyelaras, only show events they are members of
-    if (profile?.role === 'Penyelaras') {
+    // If Penyelaras or organizer, only show events they are members of
+    if (profile?.role === 'Penyelaras' || profile?.role === 'organizer') {
         const { data: memberEvents } = await supabase
             .from('event_members')
             .select('event_id')
@@ -37,25 +37,32 @@ export default async function DashboardPage() {
     }
 
     const { data: events } = await eventsQuery
+    const eventIds = events?.map(e => e.id) || []
 
-    // 3. Determine which tasks to show
-    let tasksQuery = supabase
+    // 3. Fetch all relevant tasks
+    const { data: tasks } = await supabase
         .from('tasks')
         .select('*, events(title), task_assignees(user_id)')
+        .in('event_id', eventIds)
 
-    if (profile?.role === 'Penyelaras') {
-        const { data: memberEvents } = await supabase
-            .from('event_members')
-            .select('event_id')
-            .eq('user_id', user.id)
-        
-        const eventIds = memberEvents?.map(me => me.event_id) || []
-        tasksQuery = tasksQuery.in('event_id', eventIds)
-    }
+    // 4. Fetch global team members for the calendar/modals
+    const { data: teamMembers } = await supabase
+        .from('profiles')
+        .select('user_id:id, profiles:full_name') 
+        .in('role', ['MT', 'Penyelaras'])
 
-    const { data: tasks } = await tasksQuery
+    const combinedMembers = teamMembers?.map((m: any) => ({
+        user_id: m.user_id,
+        profiles: { full_name: m.profiles }
+    })) || []
 
-    // 4. Filter for upcoming tasks (incomplete and has deadline)
+    // 5. Fetch all schedules for these events
+    const { data: globalSchedules } = await supabase
+        .from('event_schedules')
+        .select('*, profiles(full_name), events(title)')
+        .in('event_id', eventIds)
+
+    // 6. Filter for upcoming tasks
     const upcomingTasks = tasks
         ?.filter(t => t.status !== 'Delivered' && t.deadline)
         .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
@@ -121,7 +128,7 @@ export default async function DashboardPage() {
                         </div>
                     </div>
                     <div className="glass rounded-[2rem] p-1 border border-white/5 shadow-2xl overflow-hidden">
-                        <GlobalCalendar tasks={tasks || []} currentUserId={user.id} />
+                        <GlobalCalendar tasks={tasks || []} currentUserId={user.id} userRole={profile?.role} teamMembers={combinedMembers} />
                     </div>
                 </section>
 
@@ -129,7 +136,11 @@ export default async function DashboardPage() {
                 <UpcomingObjectives 
                     tasks={tasks?.filter(t => t.status !== 'Delivered' && t.deadline).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) || []} 
                     currentUserId={user.id} 
+                    userRole={profile?.role}
                 />
+
+                {/* Global Working Schedule */}
+                <GlobalSchedule schedules={globalSchedules || []} />
 
                 {/* Active Events */}
                 <section>

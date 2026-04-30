@@ -28,11 +28,12 @@ const departmentColors: Record<string, string> = {
     'Sculpture': '#8A2BE2', // Violet
 }
 
-export default function GlobalCalendar({ tasks, currentUserId }: { tasks: any[], currentUserId?: string }) {
+export default function GlobalCalendar({ tasks, currentUserId, userRole, teamMembers }: { tasks: any[], currentUserId?: string, userRole?: string, teamMembers: any[] }) {
     const [isMounted, setIsMounted] = useState(false)
     const [date, setDate] = useState(new Date())
     const [view, setView] = useState<any>(Views.MONTH)
     const [showOnlyMine, setShowOnlyMine] = useState(false)
+    const [selectedEventId, setSelectedEventId] = useState<string>('all')
     const [selectedTask, setSelectedTask] = useState<any>(null)
 
     useEffect(() => {
@@ -41,9 +42,21 @@ export default function GlobalCalendar({ tasks, currentUserId }: { tasks: any[],
 
     if (!isMounted) return <div className="h-[500px] w-full bg-surface animate-pulse rounded-[2rem]" />
 
-    const filteredTasks = showOnlyMine 
-        ? tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
-        : tasks
+    // Filter logic
+    let filteredTasks = tasks
+
+    if (userRole === 'organizer') {
+        if (selectedEventId !== 'all') {
+            filteredTasks = tasks.filter(t => t.event_id === selectedEventId)
+        }
+    } else {
+        if (showOnlyMine) {
+            filteredTasks = tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+        }
+    }
+
+    // Get unique events for the organizer filter
+    const uniqueEvents = Array.from(new Map(tasks.map(t => [t.event_id, t.events?.title])).entries())
 
     const events = filteredTasks
         .filter(t => t.deadline)
@@ -80,19 +93,40 @@ export default function GlobalCalendar({ tasks, currentUserId }: { tasks: any[],
         <div className="bg-transparent p-6 rounded-[2rem] mb-10 overflow-hidden">
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-6">
-                    <button 
-                        onClick={() => setShowOnlyMine(!showOnlyMine)}
-                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[11px] font-mono font-bold uppercase tracking-widest transition-all ${
-                            showOnlyMine 
-                            ? 'bg-cyan-neon text-black shadow-[0_0_20px_rgba(0,245,255,0.4)]' 
-                            : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5'
-                        }`}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        {showOnlyMine ? 'MY TASKS' : 'ALL TEAM TASKS'}
-                    </button>
-                    {!showOnlyMine && (
-                        <span className="text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">Task Logs: {tasks.length} Total</span>
+                    {userRole === 'organizer' ? (
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl px-4 py-2 flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-neon"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+                                <select 
+                                    value={selectedEventId}
+                                    onChange={(e) => setSelectedEventId(e.target.value)}
+                                    className="bg-transparent text-[11px] font-mono font-bold text-white outline-none cursor-pointer uppercase tracking-widest"
+                                >
+                                    <option value="all" className="bg-[#161B22]">All Assigned Projects</option>
+                                    {uniqueEvents.map(([id, title]) => (
+                                        <option key={id} value={id} className="bg-[#161B22]">{title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <span className="text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">Viewing Timeline for {selectedEventId === 'all' ? 'All' : 'Selected'} Events</span>
+                        </div>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={() => setShowOnlyMine(!showOnlyMine)}
+                                className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[11px] font-mono font-bold uppercase tracking-widest transition-all ${
+                                    showOnlyMine 
+                                    ? 'bg-cyan-neon text-black shadow-[0_0_20px_rgba(0,245,255,0.4)]' 
+                                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5'
+                                }`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                {showOnlyMine ? 'MY TASKS' : 'ALL TEAM TASKS'}
+                            </button>
+                            {!showOnlyMine && (
+                                <span className="text-[10px] font-mono text-white/20 uppercase tracking-[0.2em]">Task Logs: {tasks.length} Total</span>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -157,6 +191,8 @@ export default function GlobalCalendar({ tasks, currentUserId }: { tasks: any[],
                     task={selectedTask} 
                     eventId={selectedTask.event_id} 
                     onClose={() => setSelectedTask(null)} 
+                    teamMembers={teamMembers}
+                    userRole={userRole}
                 />
             )}
         </div>

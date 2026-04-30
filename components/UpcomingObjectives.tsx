@@ -4,12 +4,24 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-export default function UpcomingObjectives({ tasks, currentUserId }: { tasks: any[], currentUserId: string }) {
+export default function UpcomingObjectives({ tasks, currentUserId, userRole }: { tasks: any[], currentUserId: string, userRole?: string }) {
     const [showOnlyMine, setShowOnlyMine] = useState(false)
+    const [selectedEventId, setSelectedEventId] = useState<string>('all')
 
-    const filteredTasks = showOnlyMine 
-        ? tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
-        : tasks
+    let filteredTasks = tasks
+
+    if (userRole === 'organizer') {
+        if (selectedEventId !== 'all') {
+            filteredTasks = tasks.filter(t => t.event_id === selectedEventId)
+        }
+    } else {
+        if (showOnlyMine) {
+            filteredTasks = tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+        }
+    }
+
+    // Get unique events for the organizer filter
+    const uniqueEvents = Array.from(new Map(tasks.map(t => [t.event_id, t.events?.title])).entries())
 
     const deptColors: Record<string, string> = {
         'Graphic': 'text-[#00F5FF]',
@@ -22,20 +34,40 @@ export default function UpcomingObjectives({ tasks, currentUserId }: { tasks: an
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div className="flex items-center gap-3">
                     <div className="w-1.5 h-6 bg-violet-neon rounded-full"></div>
-                    <h2 className="text-xl font-display font-bold text-white uppercase tracking-wider">Upcoming Tasks</h2>
+                    <h2 className="text-xl font-display font-bold text-white uppercase tracking-wider">
+                        {userRole === 'organizer' ? 'Assigned Project Tasks' : 'Upcoming Tasks'}
+                    </h2>
                 </div>
 
-                <button 
-                    onClick={() => setShowOnlyMine(!showOnlyMine)}
-                    className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-mono font-bold uppercase tracking-widest transition-all ${
-                        showOnlyMine 
-                        ? 'bg-violet-neon text-white shadow-[0_0_20px_rgba(138,43,226,0.4)]' 
-                        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5'
-                    }`}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                    {showOnlyMine ? 'MY TASKS' : 'ALL TASKS'}
-                </button>
+                {userRole === 'organizer' ? (
+                    <div className="flex items-center gap-4">
+                        <div className="bg-white/5 border border-white/5 rounded-2xl px-4 py-2 flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-neon"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+                            <select 
+                                value={selectedEventId}
+                                onChange={(e) => setSelectedEventId(e.target.value)}
+                                className="bg-transparent text-[11px] font-mono font-bold text-white outline-none cursor-pointer uppercase tracking-widest"
+                            >
+                                <option value="all" className="bg-[#161B22]">All Assigned Projects</option>
+                                {uniqueEvents.map(([id, title]) => (
+                                    <option key={id} value={id} className="bg-[#161B22]">{title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={() => setShowOnlyMine(!showOnlyMine)}
+                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-mono font-bold uppercase tracking-widest transition-all ${
+                            showOnlyMine 
+                            ? 'bg-violet-neon text-white shadow-[0_0_20px_rgba(138,43,226,0.4)]' 
+                            : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5'
+                        }`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        {showOnlyMine ? 'MY TASKS' : 'ALL TASKS'}
+                    </button>
+                )}
             </div>
             
             <div className="glass rounded-[2rem] border border-white/5 overflow-hidden">

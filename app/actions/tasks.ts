@@ -9,6 +9,7 @@ export async function addTask(formData: FormData) {
 
     const eventId = formData.get('eventId') as string
     const title = formData.get('title') as string
+    const status = (formData.get('status') as string) || 'Pending'
     const department = formData.get('department') as string || 'Other'
     const description = formData.get('description') as string || null
     const deadline = formData.get('deadline') as string || null
@@ -16,7 +17,7 @@ export async function addTask(formData: FormData) {
 
     // 1. Insert the Task
     const { data: task, error: taskError } = await supabase.from('tasks').insert([
-        { event_id: eventId, title, department, description, deadline, status: 'Pending' }
+        { event_id: eventId, title, department, description, deadline, status }
     ]).select().single()
 
     if (taskError) throw new Error(taskError.message)
@@ -35,15 +36,35 @@ export async function addTask(formData: FormData) {
     revalidatePath(`/dashboard/events/${eventId}`)
 }
 
-export async function updateTaskStatus(taskId: string, newStatus: string, eventId: string) {
+export async function updateTaskStatus(taskId: string, newStatus: string, eventId: string, remarks?: string, assigneeIds?: string[]) {
     const supabase = await createClient()
+
+    const updateData: any = { status: newStatus }
+    if (remarks) updateData.rejection_remarks = remarks
 
     const { error } = await supabase
         .from('tasks')
-        .update({ status: newStatus })
+        .update(updateData)
         .eq('id', taskId)
 
     if (error) throw new Error(error.message)
+
+    // Handle assignee updates if provided
+    if (assigneeIds) {
+        // 1. Delete existing assignees
+        await supabase.from('task_assignees').delete().eq('task_id', taskId)
+        
+        // 2. Insert new assignees
+        if (assigneeIds.length > 0) {
+            const assigneesToInsert = assigneeIds.map(userId => ({
+                task_id: taskId,
+                user_id: userId
+            }))
+            const { error: assignError } = await supabase.from('task_assignees').insert(assigneesToInsert)
+            if (assignError) throw new Error(assignError.message)
+        }
+    }
+
     revalidatePath(`/dashboard/events/${eventId}`)
     revalidatePath(`/dashboard`)
 }
@@ -68,7 +89,7 @@ export async function addTaskComment(formData: FormData) {
     revalidatePath(`/dashboard/events/${eventId}`)
 }
 
-export async function updateTask(taskId: string, eventId: string, title: string, department: string, description: string, deadline: string) {
+export async function updateTask(taskId: string, eventId: string, title: string, department: string, description: string, deadline: string, assigneeIds?: string[]) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
@@ -76,6 +97,23 @@ export async function updateTask(taskId: string, eventId: string, title: string,
         .eq('id', taskId)
 
     if (error) throw new Error(error.message)
+
+    // Handle assignee updates if provided
+    if (assigneeIds) {
+        // 1. Delete existing assignees
+        await supabase.from('task_assignees').delete().eq('task_id', taskId)
+        
+        // 2. Insert new assignees
+        if (assigneeIds.length > 0) {
+            const assigneesToInsert = assigneeIds.map(userId => ({
+                task_id: taskId,
+                user_id: userId
+            }))
+            const { error: assignError } = await supabase.from('task_assignees').insert(assigneesToInsert)
+            if (assignError) throw new Error(assignError.message)
+        }
+    }
+
     revalidatePath(`/dashboard/events/${eventId}`)
 }
 

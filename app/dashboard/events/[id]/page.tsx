@@ -7,6 +7,7 @@ import AddTaskModal from '@/components/AddTaskModal'
 import EventCalendar from '@/components/EventCalendar'
 import EventSettingsModal from '@/components/EventSettingsModal'
 import UpcomingObjectives from '@/components/UpcomingObjectives'
+import EventSchedule from '@/components/EventSchedule'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,24 +15,28 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const resolvedParams = await params
   const { id } = resolvedParams
   const supabase = await createClient()
-  const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const adminSupabase = createClient() // We can use regular client for public profiles if RLS allows
 
   // 1. Fetch current user and their role
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
 
-  // 2. Fetch Event, Tasks, Members, and global profiles in parallel
-  const [eventRes, tasksRes, membersRes, profilesRes] = await Promise.all([
+  // 2. Fetch Event, Tasks, Members, Global profiles, and Schedules in parallel
+  const [eventRes, tasksRes, membersRes, profilesRes, schedulesRes] = await Promise.all([
     supabase.from('events').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*, task_assignees(user_id, profiles(full_name)), task_comments(id, content, created_at, profiles(full_name))').eq('event_id', id),
     supabase.from('event_members').select('*, profiles(full_name)').eq('event_id', id),
-    adminSupabase.from('profiles').select('id, full_name, role').in('role', ['MT', 'Penyelaras'])
+    supabase.from('profiles').select('id, full_name, role').in('role', ['MT', 'Penyelaras']),
+    supabase.from('event_schedules').select('*, profiles(full_name)').eq('event_id', id)
   ])
 
   if (!eventRes.data) notFound()
+
+  // Security check for Penyelaras and organizer role
+  if (userProfile?.role === 'Penyelaras' || userProfile?.role === 'organizer') {
+    const isMember = membersRes.data?.some((m: any) => m.user_id === user?.id)
+    if (!isMember) notFound()
+  }
 
   // Combine event members and MT/Penyelaras into a single unique list for the dropdown
   const uniqueMembersMap = new Map()
@@ -75,7 +80,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           </p>
         </div>
         <div className="w-full md:w-auto md:sticky md:top-8 z-20">
-          <AddTaskModal eventId={id} teamMembers={combinedMembers} />
+          <AddTaskModal eventId={id} teamMembers={combinedMembers} userRole={userProfile?.role} />
         </div>
       </div>
 
@@ -87,7 +92,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <h2 className="text-lg font-display font-bold text-white uppercase tracking-widest text-sm md:text-lg">Project Kanban</h2>
           </div>
           <div className="glass rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8 border border-white/5 shadow-2xl overflow-x-auto">
-            <KanbanBoard initialTasks={tasksRes.data || []} eventId={id} userRole={userProfile?.role} />
+            <KanbanBoard initialTasks={tasksRes.data || []} eventId={id} userRole={userProfile?.role} teamMembers={combinedMembers} />
           </div>
         </section>
 
@@ -106,6 +111,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <UpcomingObjectives 
           tasks={tasksRes.data?.filter(t => t.status !== 'Delivered' && t.deadline).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) || []} 
           currentUserId={user?.id || ''} 
+        />
+
+        {/* Working Schedule Section */}
+        <EventSchedule 
+          eventId={id} 
+          schedules={schedulesRes.data || []} 
+          teamMembers={combinedMembers} 
+          userRole={userProfile?.role} 
         />
       </div>
     </div>

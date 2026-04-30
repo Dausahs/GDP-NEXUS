@@ -18,39 +18,61 @@ export async function createEvent(
 
     const title = formData.get('title') as string
     const description = formData.get('description') as string
+    const startDate = formData.get('startDate') as string
     const endDate = formData.get('endDate') as string
 
     // Leads — map dept name to user selection
     const leads = [
-        { userId: formData.get('graphicLead') as string, dept: 'Graphic' },
-        { userId: formData.get('productionLead') as string, dept: 'Production' },
-        { userId: formData.get('sculptureLead') as string, dept: 'Sculpture' },
+        { userId: formData.get('picId') as string, dept: 'PIC' },
+        { userId: formData.get('graphicLeadId') as string, dept: 'Graphics' },
+        { userId: formData.get('productionLeadId') as string, dept: 'Production' },
+        { userId: formData.get('videoLeadId') as string, dept: 'Video' },
+        { userId: formData.get('photoLeadId') as string, dept: 'Photo' },
     ]
-
+    
+    const organizerId = formData.get('organizerId') as string
+    
     // 1. Insert Event
     const { data: event, error: eventError } = await supabase
         .from('events')
-        .insert([{ title, description, end_date: endDate }])
+        .insert([{ title, description, start_date: startDate, end_date: endDate }])
         .select()
         .single()
 
     if (eventError) return { error: eventError.message }
 
-    // 2. Insert one row per dept assignment (same user can hold multiple roles)
-    const memberEntries = leads
-        .filter(lead => lead.userId) // skip if no user was selected
-        .map(lead => ({
+    // 2. Prepare member entries
+    const memberEntries = []
+
+    // Add Organizer
+    if (organizerId) {
+        memberEntries.push({
             event_id: event.id,
-            user_id: lead.userId,
-            dept: lead.dept,
-            is_lead: true,
-        }))
+            user_id: organizerId,
+            dept: 'Production', // Using Production as a default for Organizers
+            is_lead: false,
+        })
+    }
 
-    const { error: memberError } = await supabase
-        .from('event_members')
-        .insert(memberEntries)
+    // Add Leads
+    leads.forEach(lead => {
+        if (lead.userId) {
+            memberEntries.push({
+                event_id: event.id,
+                user_id: lead.userId,
+                dept: lead.dept,
+                is_lead: true,
+            })
+        }
+    })
 
-    if (memberError) return { error: memberError.message }
+    if (memberEntries.length > 0) {
+        const { error: memberError } = await supabase
+            .from('event_members')
+            .insert(memberEntries)
+
+        if (memberError) return { error: memberError.message }
+    }
     revalidatePath('/dashboard')
     redirect('/dashboard')
 }

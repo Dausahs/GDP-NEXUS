@@ -4,10 +4,12 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { DraggableTask } from './DraggableTask'
 
-export function KanbanColumn({ id, tasks, title, eventId, userRole }: { id: string, tasks: any[], title: string, eventId: string, userRole?: string }) {
+export function KanbanColumn({ id, tasks, title, eventId, userRole, teamMembers }: { id: string, tasks: any[], title: string, eventId: string, userRole?: string, teamMembers: any[] }) {
   const { setNodeRef } = useDroppable({ id })
 
   const statusColors: Record<string, string> = {
+    'Requested': 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
+    'Rejected': 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
     'Pending': 'bg-white/20',
     'Ongoing': 'bg-cyan-neon shadow-[0_0_10px_rgba(0,245,255,0.3)]',
     'QC': 'bg-violet-neon shadow-[0_0_10px_rgba(138,43,226,0.3)]',
@@ -32,7 +34,7 @@ export function KanbanColumn({ id, tasks, title, eventId, userRole }: { id: stri
       >
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <DraggableTask key={task.id} task={task} eventId={eventId} userRole={userRole} />
+            <DraggableTask key={task.id} task={task} eventId={eventId} userRole={userRole} teamMembers={teamMembers} />
           ))}
         </SortableContext>
         {tasks.length === 0 && (
