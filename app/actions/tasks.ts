@@ -1,0 +1,91 @@
+// app/actions/tasks.ts
+'use server'
+
+import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+export async function addTask(formData: FormData) {
+    const supabase = await createClient()
+
+    const eventId = formData.get('eventId') as string
+    const title = formData.get('title') as string
+    const department = formData.get('department') as string || 'Other'
+    const description = formData.get('description') as string || null
+    const deadline = formData.get('deadline') as string || null
+    const assigneeIds = formData.getAll('assigneeIds') as string[] // Can be empty, one, or multiple
+
+    // 1. Insert the Task
+    const { data: task, error: taskError } = await supabase.from('tasks').insert([
+        { event_id: eventId, title, department, description, deadline, status: 'Pending' }
+    ]).select().single()
+
+    if (taskError) throw new Error(taskError.message)
+
+    // 2. Insert the Assignees (if any)
+    if (assigneeIds.length > 0) {
+        const assigneesToInsert = assigneeIds.map(userId => ({
+            task_id: task.id,
+            user_id: userId
+        }))
+
+        const { error: assignError } = await supabase.from('task_assignees').insert(assigneesToInsert)
+        if (assignError) throw new Error(assignError.message)
+    }
+
+    revalidatePath(`/dashboard/events/${eventId}`)
+}
+
+export async function updateTaskStatus(taskId: string, newStatus: string, eventId: string) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('tasks')
+        .update({ status: newStatus })
+        .eq('id', taskId)
+
+    if (error) throw new Error(error.message)
+    revalidatePath(`/dashboard/events/${eventId}`)
+    revalidatePath(`/dashboard`)
+}
+
+export async function addTaskComment(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) throw new Error("Unauthorized")
+
+    const taskId = formData.get('taskId') as string
+    const eventId = formData.get('eventId') as string
+    const content = formData.get('content') as string
+
+    if (!content || !content.trim()) return
+
+    const { error } = await supabase.from('task_comments').insert([
+        { task_id: taskId, user_id: user.id, content: content.trim() }
+    ])
+
+    if (error) throw new Error(error.message)
+    revalidatePath(`/dashboard/events/${eventId}`)
+}
+
+export async function updateTask(taskId: string, eventId: string, title: string, department: string, description: string, deadline: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('tasks')
+        .update({ title, department, description, deadline })
+        .eq('id', taskId)
+
+    if (error) throw new Error(error.message)
+    revalidatePath(`/dashboard/events/${eventId}`)
+}
+
+export async function deleteTask(taskId: string, eventId: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId)
+
+    if (error) throw new Error(error.message)
+    revalidatePath(`/dashboard/events/${eventId}`)
+}
