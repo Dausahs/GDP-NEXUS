@@ -20,12 +20,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
 
-  const [eventRes, tasksRes, membersRes, profilesRes, schedulesRes] = await Promise.all([
+  const [eventRes, tasksRes, membersRes, profilesRes, schedulesRes, organizerProfilesRes] = await Promise.all([
     supabase.from('events').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*, task_assignees(user_id, profiles(full_name)), task_comments(id, content, created_at, profiles(full_name))').eq('event_id', id),
     supabase.from('event_members').select('*, profiles(full_name)').eq('event_id', id),
     supabase.from('profiles').select('id, full_name, role').in('role', ['MT', 'Penyelaras']),
-    supabase.from('event_schedules').select('*, profiles(full_name)').eq('event_id', id)
+    supabase.from('event_schedules').select('*, profiles(full_name)').eq('event_id', id),
+    supabase.from('profiles').select('id, full_name').eq('role', 'organizer').order('full_name'),
   ])
 
   if (!eventRes.data) notFound()
@@ -50,6 +51,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   }
   const combinedMembers = Array.from(uniqueMembersMap.values())
 
+  // Organizer data for settings modal
+  const allOrganizers = organizerProfilesRes.data || []
+  const currentOrganizerIds = (membersRes.data || [])
+    .filter((m: any) => m.dept === 'Organizer')
+    .map((m: any) => m.user_id)
+
   return (
     <div className="min-h-screen bg-bg text-text-primary p-4 md:p-8 space-y-8">
 
@@ -61,7 +68,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               {eventRes.data.title}
             </h1>
             {userProfile?.role === 'MT' && (
-              <EventSettingsModal event={eventRes.data} />
+              <EventSettingsModal
+                event={eventRes.data}
+                allOrganizers={allOrganizers}
+                currentOrganizers={currentOrganizerIds}
+              />
             )}
           </div>
           {eventRes.data.description && (

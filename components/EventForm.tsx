@@ -82,17 +82,32 @@ export default function EventForm({ users, mtId }: { users: any[], mtId?: string
                 <p className="text-xs text-text-muted mb-4">Assign key personnel to lead the project</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-text-secondary mb-1.5">Project organizer</label>
-                        <select
-                            name="organizerId"
-                            required
-                            className="w-full bg-bg-subtle border border-border rounded-lg px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-accent transition-colors appearance-none"
-                        >
-                            <option value="">Select organizer…</option>
-                            {users.filter(u => u.role === 'organizer').map(u => (
-                                <option key={u.id} value={u.id}>{u.full_name}</option>
-                            ))}
-                        </select>
+                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                            Project organizers
+                            <span className="ml-1 text-text-muted font-normal">(select one or more)</span>
+                        </label>
+                        <div className="bg-bg-subtle border border-border rounded-lg p-3 max-h-[200px] overflow-y-auto custom-scrollbar space-y-1">
+                            {users.filter(u => u.role === 'organizer').length === 0 ? (
+                                <p className="text-xs text-text-muted py-2 px-1">No organizers available</p>
+                            ) : (
+                                users.filter(u => u.role === 'organizer').map(u => (
+                                    <label
+                                        key={u.id}
+                                        className="flex items-center gap-2.5 p-2 rounded-md hover:bg-bg-elevated transition-colors cursor-pointer group"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            name="organizerId"
+                                            value={u.id}
+                                            className="w-3.5 h-3.5 rounded accent-accent"
+                                        />
+                                        <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
+                                            {u.full_name}
+                                        </span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
                     </div>
                     {departments.map((dept) => (
                         <div key={dept.name}>

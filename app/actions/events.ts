@@ -30,7 +30,7 @@ export async function createEvent(
         { userId: formData.get('photoLeadId') as string, dept: 'Photo' },
     ]
     
-    const organizerId = formData.get('organizerId') as string
+    const organizerIds = formData.getAll('organizerId') as string[]
     
     // 1. Insert Event
     const { data: event, error: eventError } = await supabase
@@ -44,14 +44,16 @@ export async function createEvent(
     // 2. Prepare member entries
     const memberEntries = []
 
-    // Add Organizer
-    if (organizerId) {
-        memberEntries.push({
-            event_id: event.id,
-            user_id: organizerId,
-            dept: 'Production', // Using Production as a default for Organizers
-            is_lead: false,
-        })
+    // Add all selected Organizers
+    for (const organizerId of organizerIds) {
+        if (organizerId) {
+            memberEntries.push({
+                event_id: event.id,
+                user_id: organizerId,
+                dept: 'Organizer',
+                is_lead: false,
+            })
+        }
     }
 
     // Add Leads
@@ -137,4 +139,38 @@ export async function deleteEvent(eventId: string) {
     revalidatePath('/dashboard')
     redirect('/dashboard')
 }
+
+/** Replace the full set of organizers for an existing event */
+export async function updateEventOrganizers(eventId: string, organizerIds: string[]) {
+    const supabase = await createClient()
+
+    // Security check
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    if (profile?.role !== 'MT') throw new Error('Unauthorized')
+
+    // Remove all existing organizer entries for this event
+    const { error: delError } = await supabase
+        .from('event_members')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('dept', 'Organizer')
+
+    if (delError) throw new Error(delError.message)
+
+    // Insert the new set
+    if (organizerIds.length > 0) {
+        const entries = organizerIds.map(userId => ({
+            event_id: eventId,
+            user_id: userId,
+            dept: 'Organizer',
+            is_lead: false,
+        }))
+        const { error: insertError } = await supabase.from('event_members').insert(entries)
+        if (insertError) throw new Error(insertError.message)
+    }
+
+    revalidatePath(`/dashboard/events/${eventId}`)
+}
+
 

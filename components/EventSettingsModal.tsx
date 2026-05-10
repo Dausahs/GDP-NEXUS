@@ -2,15 +2,33 @@
 'use client'
 
 import React, { useState } from 'react'
-import { updateEvent, deleteEvent } from '@/app/actions/events'
+import { updateEvent, deleteEvent, updateEventOrganizers } from '@/app/actions/events'
 
-export default function EventSettingsModal({ event }: { event: any }) {
+export default function EventSettingsModal({
+    event,
+    allOrganizers,      // all users with role === 'organizer'
+    currentOrganizers,  // user_ids already assigned as organizer for this event
+}: {
+    event: any,
+    allOrganizers: { id: string, full_name: string }[],
+    currentOrganizers: string[],
+}) {
     const [isOpen, setIsOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [isUpdating, setIsUpdating] = useState(false)
+    const [isUpdatingOrgs, setIsUpdatingOrgs] = useState(false)
+
     const [title, setTitle] = useState(event.title)
     const [description, setDescription] = useState(event.description || '')
     const [endDate, setEndDate] = useState(event.end_date || '')
+
+    const [selectedOrgs, setSelectedOrgs] = useState<string[]>(currentOrganizers)
+
+    const toggleOrg = (id: string) => {
+        setSelectedOrgs(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -18,8 +36,16 @@ export default function EventSettingsModal({ event }: { event: any }) {
         try {
             await updateEvent(event.id, title, description, endDate)
             setIsOpen(false)
-        } catch { alert('Failed to update event') }
+        } catch { alert('Failed to update project') }
         finally { setIsUpdating(false) }
+    }
+
+    const handleUpdateOrgs = async () => {
+        setIsUpdatingOrgs(true)
+        try {
+            await updateEventOrganizers(event.id, selectedOrgs)
+        } catch { alert('Failed to update organizers') }
+        finally { setIsUpdatingOrgs(false) }
     }
 
     const handleDelete = async () => {
@@ -42,13 +68,14 @@ export default function EventSettingsModal({ event }: { event: any }) {
 
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4"
+                    className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 overflow-y-auto"
                     onClick={() => setIsOpen(false)}
                 >
                     <div
-                        className="bg-bg-elevated border border-border rounded-xl max-w-md w-full p-6 shadow-2xl"
+                        className="bg-bg-elevated border border-border rounded-xl max-w-md w-full p-6 shadow-2xl my-4"
                         onClick={e => e.stopPropagation()}
                     >
+                        {/* Header */}
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-base font-semibold text-text-primary">Project settings</h2>
                             <button onClick={() => setIsOpen(false)} className="text-text-muted hover:text-text-primary transition-colors">
@@ -56,6 +83,7 @@ export default function EventSettingsModal({ event }: { event: any }) {
                             </button>
                         </div>
 
+                        {/* General info form */}
                         <form onSubmit={handleUpdate} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-medium text-text-secondary mb-1.5">Project name</label>
@@ -92,6 +120,56 @@ export default function EventSettingsModal({ event }: { event: any }) {
                                 {isUpdating ? 'Saving…' : 'Save changes'}
                             </button>
                         </form>
+
+                        {/* Organizers section */}
+                        <div className="mt-6 pt-6 border-t border-border">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className="text-xs font-semibold text-text-secondary">Organizers</p>
+                                    <p className="text-[10px] text-text-muted mt-0.5">
+                                        {selectedOrgs.length} assigned
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleUpdateOrgs}
+                                    disabled={isUpdatingOrgs}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50"
+                                >
+                                    {isUpdatingOrgs ? 'Saving…' : 'Update'}
+                                </button>
+                            </div>
+
+                            {allOrganizers.length === 0 ? (
+                                <p className="text-xs text-text-muted py-2">No organizer accounts found</p>
+                            ) : (
+                                <div className="bg-bg-subtle border border-border rounded-lg p-3 max-h-[180px] overflow-y-auto custom-scrollbar space-y-1">
+                                    {allOrganizers.map(org => {
+                                        const isChecked = selectedOrgs.includes(org.id)
+                                        return (
+                                            <label
+                                                key={org.id}
+                                                className="flex items-center gap-2.5 p-2 rounded-md hover:bg-bg-elevated transition-colors cursor-pointer group"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => toggleOrg(org.id)}
+                                                    className="w-3.5 h-3.5 rounded accent-accent"
+                                                />
+                                                <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors flex-1">
+                                                    {org.full_name}
+                                                </span>
+                                                {isChecked && (
+                                                    <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                                        Assigned
+                                                    </span>
+                                                )}
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Danger zone */}
                         <div className="mt-6 pt-6 border-t border-border">
