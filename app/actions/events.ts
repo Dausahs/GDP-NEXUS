@@ -23,11 +23,11 @@ export async function createEvent(
 
     // Leads — map dept name to user selection
     const leads = [
-        { userId: formData.get('picId') as string, dept: 'PIC' },
-        { userId: formData.get('graphicLeadId') as string, dept: 'Graphics' },
+        { userId: formData.get('picId') as string,            dept: 'PIC' },
+        { userId: formData.get('graphicLeadId') as string,    dept: 'Graphics' },
         { userId: formData.get('productionLeadId') as string, dept: 'Production' },
-        { userId: formData.get('videoLeadId') as string, dept: 'Video' },
-        { userId: formData.get('photoLeadId') as string, dept: 'Photo' },
+        { userId: formData.get('videoLeadId') as string,      dept: 'Video' },
+        { userId: formData.get('photoLeadId') as string,      dept: 'Photo' },
     ]
     
     const organizerIds = formData.getAll('organizerId') as string[]
