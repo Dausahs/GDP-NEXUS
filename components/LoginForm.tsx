@@ -22,6 +22,84 @@ export default function LoginForm({ error }: { error?: string }) {
     return (
         <div className="min-h-screen bg-bg flex items-center justify-center px-6 overflow-hidden relative">
 
+            {/* ── Full-page loading overlay ── */}
+            <div
+                aria-live="polite"
+                aria-label="Signing in"
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '1.5rem',
+                    background: 'var(--bg)',
+                    opacity: isPending ? 1 : 0,
+                    pointerEvents: isPending ? 'all' : 'none',
+                    transition: 'opacity 0.3s ease',
+                }}
+            >
+                {/* Logo with pulse rings */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Outer pulse ring */}
+                    <div style={{
+                        position: 'absolute',
+                        width: '72px',
+                        height: '72px',
+                        borderRadius: '50%',
+                        border: '1.5px solid rgba(99,102,241,0.3)',
+                        animation: 'ping-slow 1.8s ease-out infinite',
+                    }} />
+                    {/* Inner pulse ring */}
+                    <div style={{
+                        position: 'absolute',
+                        width: '54px',
+                        height: '54px',
+                        borderRadius: '50%',
+                        border: '1.5px solid rgba(99,102,241,0.2)',
+                        animation: 'ping-slow 1.8s ease-out 0.4s infinite',
+                    }} />
+                    {/* Icon */}
+                    <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        background: '#6366f1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 24px rgba(99,102,241,0.25)',
+                    }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                            <circle cx="12" cy="12" r="3" fill="white" stroke="none" />
+                        </svg>
+                    </div>
+                </div>
+
+                {/* Text */}
+                <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        Signing in
+                    </p>
+                    {/* Dot bounce loader */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', marginTop: '10px' }}>
+                        {[0, 1, 2].map(i => (
+                            <div key={i} style={{
+                                width: '5px',
+                                height: '5px',
+                                borderRadius: '50%',
+                                background: 'var(--accent)',
+                                animation: `dot-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                            }} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             {/* Subtle ambient blobs — very muted, non-neon */}
             <div
                 aria-hidden
@@ -221,6 +299,15 @@ export default function LoginForm({ error }: { error?: string }) {
                 @keyframes icon-spin {
                     0%   { transform: rotate(-30deg) scale(0.7); opacity: 0; }
                     100% { transform: rotate(0deg) scale(1);   opacity: 1; }
+                }
+                @keyframes ping-slow {
+                    0%   { transform: scale(0.85); opacity: 0.7; }
+                    80%  { transform: scale(1.5);  opacity: 0; }
+                    100% { transform: scale(1.5);  opacity: 0; }
+                }
+                @keyframes dot-bounce {
+                    0%, 80%, 100% { transform: translateY(0);    opacity: 0.3; }
+                    40%           { transform: translateY(-6px); opacity: 1; }
                 }
             `}</style>
         </div>

@@ -43,7 +43,7 @@ export default async function AssetsPage() {
                         <h1 className="text-2xl font-display font-semibold text-text-primary tracking-tight">Inventory</h1>
                         <p className="text-sm text-text-secondary mt-1">GDP equipment tracking</p>
                     </div>
-                    <AddAssetModal />
+                    {profile?.role === 'MT' && <AddAssetModal />}
                 </div>
 
                 {/* Asset List */}

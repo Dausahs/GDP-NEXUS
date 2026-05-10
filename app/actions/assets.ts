@@ -93,4 +93,46 @@ export async function returnAsset(formData: FormData) {
 
     if (logError) throw new Error(logError.message)
     revalidatePath('/dashboard/assets')
-}
+}
+
+export async function updateAsset(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'MT') throw new Error('Only MT can edit equipment')
+
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const type = formData.get('type') as string
+    const serial_number = formData.get('serial_number') as string
+    const condition = formData.get('condition') as string
+
+    const { error } = await supabase
+        .from('assets')
+        .update({ name, type, serial_number, condition })
+        .eq('id', id)
+
+    if (error) throw new Error(error.message)
+    revalidatePath('/dashboard/assets')
+}
+
+export async function deleteAsset(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'MT') throw new Error('Only MT can delete equipment')
+
+    const id = formData.get('id') as string
+
+    // Delete logs first to avoid FK constraint
+    await supabase.from('asset_logs').delete().eq('asset_id', id)
+
+    const { error } = await supabase.from('assets').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    revalidatePath('/dashboard/assets')
+}
+
