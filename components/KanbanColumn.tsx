@@ -4,33 +4,35 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { DraggableTask } from './DraggableTask'
 
-export function KanbanColumn({ id, tasks, title, eventId, userRole, teamMembers }: { id: string, tasks: any[], title: string, eventId: string, userRole?: string, teamMembers: any[] }) {
+const statusDots: Record<string, string> = {
+  'Requested': 'bg-amber-400',
+  'Rejected':  'bg-red-400',
+  'Pending':   'bg-zinc-500',
+  'Ongoing':   'bg-accent',
+  'QC':        'bg-purple-400',
+  'Delivered': 'bg-green-400',
+}
+
+export function KanbanColumn({ id, tasks, title, eventId, userRole, teamMembers }: {
+  id: string, tasks: any[], title: string, eventId: string, userRole?: string, teamMembers: any[]
+}) {
   const { setNodeRef } = useDroppable({ id })
 
-  const statusColors: Record<string, string> = {
-    'Requested': 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]',
-    'Rejected': 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
-    'Pending': 'bg-white/20',
-    'Ongoing': 'bg-cyan-neon shadow-[0_0_10px_rgba(0,245,255,0.3)]',
-    'QC': 'bg-violet-neon shadow-[0_0_10px_rgba(138,43,226,0.3)]',
-    'Delivered': 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-  }
-
   return (
-    <div className="flex flex-col w-full md:min-w-[300px] h-full">
-      <div className="flex items-center justify-between mb-6 px-2">
-        <h3 className="font-display font-bold text-sm text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
-          <span className={`w-1.5 h-6 rounded-full ${statusColors[id] || 'bg-white/10'}`}></span>
-          {title}
-        </h3>
-        <span className="text-[10px] font-mono font-bold text-white/20 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${statusDots[id] || 'bg-zinc-600'}`} />
+          <h3 className="text-xs font-semibold text-text-secondary">{title}</h3>
+        </div>
+        <span className="text-[10px] font-medium text-text-muted bg-bg-subtle border border-border px-1.5 py-0.5 rounded">
           {tasks.length}
         </span>
       </div>
-      
-      <div 
-        ref={setNodeRef} 
-        className="flex-1 space-y-4 min-h-[500px] p-2 rounded-[2rem] bg-white/[0.01] transition-colors"
+
+      <div
+        ref={setNodeRef}
+        className="flex-1 space-y-2 min-h-[400px] p-2 rounded-lg bg-bg-subtle/50 transition-colors"
       >
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
@@ -38,8 +40,8 @@ export function KanbanColumn({ id, tasks, title, eventId, userRole, teamMembers 
           ))}
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="h-32 border border-dashed border-white/5 rounded-[2rem] flex items-center justify-center">
-            <span className="text-[10px] font-mono text-white/10 uppercase tracking-widest">Sector Empty</span>
+          <div className="h-24 border border-dashed border-border rounded-lg flex items-center justify-center">
+            <span className="text-xs text-text-muted">Empty</span>
           </div>
         )}
       </div>

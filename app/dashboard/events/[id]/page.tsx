@@ -15,13 +15,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const resolvedParams = await params
   const { id } = resolvedParams
   const supabase = await createClient()
-  const adminSupabase = createClient() // We can use regular client for public profiles if RLS allows
+  const adminSupabase = createClient()
 
-  // 1. Fetch current user and their role
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
 
-  // 2. Fetch Event, Tasks, Members, Global profiles, and Schedules in parallel
   const [eventRes, tasksRes, membersRes, profilesRes, schedulesRes] = await Promise.all([
     supabase.from('events').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*, task_assignees(user_id, profiles(full_name)), task_comments(id, content, created_at, profiles(full_name))').eq('event_id', id),
@@ -32,93 +30,81 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   if (!eventRes.data) notFound()
 
-  // Security check for Penyelaras and organizer role
   if (userProfile?.role === 'Penyelaras' || userProfile?.role === 'organizer') {
     const isMember = membersRes.data?.some((m: any) => m.user_id === user?.id)
     if (!isMember) notFound()
   }
 
-  // Combine event members and MT/Penyelaras into a single unique list for the dropdown
   const uniqueMembersMap = new Map()
-  
-  // Add direct event members first
   if (membersRes.data) {
-      membersRes.data.forEach((m: any) => {
-          uniqueMembersMap.set(m.user_id, { user_id: m.user_id, profiles: m.profiles })
-      })
+    membersRes.data.forEach((m: any) => {
+      uniqueMembersMap.set(m.user_id, { user_id: m.user_id, profiles: m.profiles })
+    })
   }
-
-  // Add global MT and Penyelaras
   if (profilesRes.data) {
-      profilesRes.data.forEach((p: any) => {
-          if (!uniqueMembersMap.has(p.id)) {
-              uniqueMembersMap.set(p.id, { user_id: p.id, profiles: { full_name: p.full_name + ` (${p.role})` } })
-          }
-      })
+    profilesRes.data.forEach((p: any) => {
+      if (!uniqueMembersMap.has(p.id)) {
+        uniqueMembersMap.set(p.id, { user_id: p.id, profiles: { full_name: p.full_name + ` (${p.role})` } })
+      }
+    })
   }
-
   const combinedMembers = Array.from(uniqueMembersMap.values())
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-cyan-neon/30 p-4 md:p-8 space-y-8 md:space-y-12">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-8">
-        <div className="space-y-4 max-w-2xl w-full">
-          <div className="flex items-center gap-4 md:gap-6">
-            <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-white leading-tight">
+    <div className="min-h-screen bg-bg text-text-primary p-4 md:p-8 space-y-8">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
+        <div className="space-y-2 max-w-2xl w-full">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-display font-semibold text-text-primary tracking-tight leading-tight">
               {eventRes.data.title}
             </h1>
             {userProfile?.role === 'MT' && (
-              <div className="pt-2">
-                <EventSettingsModal event={eventRes.data} />
-              </div>
+              <EventSettingsModal event={eventRes.data} />
             )}
           </div>
-          <div className="laser-line opacity-20"></div>
-          <p className="text-sm md:text-base text-white/50 leading-relaxed font-medium italic">
-            {eventRes.data.description || 'Project details not specified.'}
-          </p>
+          {eventRes.data.description && (
+            <p className="text-sm text-text-secondary leading-relaxed">
+              {eventRes.data.description}
+            </p>
+          )}
         </div>
-        <div className="w-full md:w-auto md:sticky md:top-8 z-20">
+        <div className="w-full md:w-auto">
           <AddTaskModal eventId={id} teamMembers={combinedMembers} userRole={userProfile?.role} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 md:gap-12">
-        {/* Kanban Board Container */}
+      <div className="space-y-8">
+
+        {/* Kanban */}
         <section>
-          <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-1.5 h-6 bg-cyan-neon rounded-full shadow-[0_0_10px_rgba(0,245,255,0.5)]"></div>
-            <h2 className="text-lg font-display font-bold text-white uppercase tracking-widest text-sm md:text-lg">Project Kanban</h2>
-          </div>
-          <div className="glass rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8 border border-white/5 shadow-2xl overflow-x-auto">
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Kanban Board</h2>
+          <div className="card p-4 md:p-6 overflow-x-auto">
             <KanbanBoard initialTasks={tasksRes.data || []} eventId={id} userRole={userProfile?.role} teamMembers={combinedMembers} />
           </div>
         </section>
 
-        {/* Calendar View Container */}
+        {/* Calendar */}
         <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-violet-neon rounded-full shadow-[0_0_10px_rgba(138,43,226,0.5)]"></div>
-            <h2 className="text-lg font-display font-bold text-white uppercase tracking-widest">Project Calendar</h2>
-          </div>
-          <div className="glass rounded-[2.5rem] p-2 border border-white/5 shadow-2xl overflow-hidden">
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Project Calendar</h2>
+          <div className="card overflow-hidden">
             <EventCalendar tasks={tasksRes.data || []} teamMembers={membersRes.data || []} currentUserId={user?.id} />
           </div>
         </section>
 
-        {/* Project Specific Upcoming Tasks */}
-        <UpcomingObjectives 
-          tasks={tasksRes.data?.filter(t => t.status !== 'Delivered' && t.deadline).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) || []} 
-          currentUserId={user?.id || ''} 
+        {/* Upcoming Tasks */}
+        <UpcomingObjectives
+          tasks={tasksRes.data?.filter(t => t.status !== 'Delivered' && t.deadline).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) || []}
+          currentUserId={user?.id || ''}
         />
 
-        {/* Working Schedule Section */}
-        <EventSchedule 
-          eventId={id} 
-          schedules={schedulesRes.data || []} 
-          teamMembers={combinedMembers} 
-          userRole={userProfile?.role} 
+        {/* Working Schedule */}
+        <EventSchedule
+          eventId={id}
+          schedules={schedulesRes.data || []}
+          teamMembers={combinedMembers}
+          userRole={userProfile?.role}
         />
       </div>
     </div>

@@ -1,12 +1,12 @@
 // app/dashboard/events/create/page.tsx
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import EventForm from '@/components/EventForm'
 
 export default async function CreateEventPage() {
     const supabase = await createClient()
 
-    // 1. Get current user profile and role
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase
         .from('profiles')
@@ -14,21 +14,26 @@ export default async function CreateEventPage() {
         .eq('id', user?.id)
         .single()
 
-    // 2. Security Check: Only MT can create events
-    if (profile?.role !== 'MT') {
-        redirect('/dashboard')
-    }
+    if (profile?.role !== 'MT') redirect('/dashboard')
 
-    // 3. Fetch all users to populate the Lead dropdowns
     const { data: users } = await supabase
         .from('profiles')
         .select('id, full_name, role')
         .order('full_name', { ascending: true })
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
-            <EventForm users={users || []} mtId={user?.id} />
+        <div className="min-h-screen bg-bg text-text-primary">
+            <div className="max-w-2xl mx-auto px-6 py-10">
+                <div className="mb-8">
+                    <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        Back to dashboard
+                    </Link>
+                    <h1 className="text-2xl font-display font-semibold text-text-primary tracking-tight">New project</h1>
+                    <p className="text-sm text-text-secondary mt-1">Set up a new media project and assign your team.</p>
+                </div>
+                <EventForm users={users || []} mtId={user?.id} />
+            </div>
         </div>
     )
 }

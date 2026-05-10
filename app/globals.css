@@ -1,119 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+/* =============================================
+   DESIGN TOKENS — Minimal Dark Theme
+   ============================================= */
 :root {
-  --background: #0D1117;
-  --foreground: #E6EDF3;
-  --surface: #161B22;
-  --surface-hover: #1C2128;
-  --accent-cyan: #00F5FF;
-  --accent-violet: #8A2BE2;
-  --border-subtle: rgba(230, 237, 243, 0.05);
-  --glass-bg: rgba(22, 27, 34, 0.7);
-  --neon-glow: 0 0 10px rgba(0, 245, 255, 0.3);
+  --bg:           #111112;
+  --bg-elevated:  #18181b;
+  --bg-subtle:    #1f1f23;
+  --border:       rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted:   #52525b;
+  --accent:       #6366f1;   /* indigo — single accent colour */
+  --accent-hover: #818cf8;
+  --accent-subtle: rgba(99, 102, 241, 0.12);
+  --success:      #22c55e;
+  --warning:      #f59e0b;
+  --danger:       #ef4444;
+  --danger-subtle: rgba(239, 68, 68, 0.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-cyan-neon: var(--accent-cyan);
-  --color-violet-neon: var(--accent-violet);
-  --font-sans: 'Inter', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --color-bg:          var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-subtle:   var(--bg-subtle);
+  --color-border:      var(--border);
+  --color-accent:      var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted:  var(--text-muted);
+  /* Keep these for legacy references */
+  --color-background:  var(--bg);
+  --color-foreground:  var(--text-primary);
+  --color-surface:     var(--bg-elevated);
+  --color-cyan-neon:   var(--accent);
+  --color-violet-neon: var(--accent);
+  --font-sans:    var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains-mono), 'Fira Mono', monospace;
 }
+
+/* =============================================
+   BASE
+   ============================================= */
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, .font-display {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.02em;
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
+/* =============================================
+   SURFACE UTILITIES
+   ============================================= */
+
+/* Clean card surface — no blur, no glow */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+}
+
+/* For legacy .glass references — retains a subtle look */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
 }
 
-.neon-border {
-  border: 1px solid var(--border-subtle);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
 }
 
-.neon-border:hover {
-  border-color: var(--accent-cyan);
-  box-shadow: var(--neon-glow);
-}
-
+/* Legacy laser-line → simple divider */
 .laser-line {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  background: var(--border);
+}
+
+/* =============================================
+   FORM INPUTS — shared style
+   ============================================= */
+.input {
   width: 100%;
-  position: relative;
-  overflow: hidden;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.input:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--text-muted); }
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* =============================================
+   SKELETON / LOADING
+   ============================================= */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
-.laser-line::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-  animation: laser-pulse 3s infinite;
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-subtle)   50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
 }
 
-@keyframes laser-pulse {
-  0% { left: -100%; }
-  50% { left: 100%; }
-  100% { left: 100%; }
+/* Page fade-in */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: page-fade-in 0.25s ease-out both; }
+
+/* Spinner */
+@keyframes spin-smooth { to { transform: rotate(360deg); } }
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin-smooth 0.65s linear infinite;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--surface);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--surface-hover);
-}
+/* =============================================
+   NAVIGATION PROGRESS BAR TARGET
+   ============================================= */
+/* (bar itself is rendered inline in the component) */
 
-@keyframes scan {
-  0% { top: 0; opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.5; }
-  100% { top: 100%; opacity: 0; }
-}
-
-.animate-scan {
-  animation: scan 4s linear infinite;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+/* =============================================
+   REACT BIG CALENDAR GLOBAL RESET
+   (applied via dangerouslySetInnerHTML in calendar components)
+   ============================================= */
