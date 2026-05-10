@@ -84,7 +84,7 @@ export default function EventForm({ users, mtId }: { users: any[], mtId?: string
                     <div className="md:col-span-2">
                         <label className="block text-xs font-medium text-text-secondary mb-1.5">
                             Project organizers
-                            <span className="ml-1 text-text-muted font-normal">(select one or more)</span>
+                            <span className="ml-1.5 text-[10px] text-text-muted font-normal bg-bg-subtle border border-border px-1.5 py-0.5 rounded">optional</span>
                         </label>
                         <div className="bg-bg-subtle border border-border rounded-lg p-3 max-h-[200px] overflow-y-auto custom-scrollbar space-y-1">
                             {users.filter(u => u.role === 'organizer').length === 0 ? (
