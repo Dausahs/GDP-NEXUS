@@ -13,10 +13,16 @@ export default function LoginForm({ error }: { error?: string }) {
         return () => clearTimeout(t)
     }, [])
 
-    async function handleSubmit(formData: FormData) {
+    async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
         setIsPending(true)
-        await signIn(formData)
-        setIsPending(false)
+        const formData = new FormData(e.currentTarget)
+        try {
+            await signIn(formData)
+        } catch (err) {
+            // Let Next.js redirect errors bubble up
+            throw err
+        }
     }
 
     return (
@@ -196,7 +202,7 @@ export default function LoginForm({ error }: { error?: string }) {
                 )}
 
                 {/* Form */}
-                <form action={handleSubmit} className="space-y-4">
+                <form onSubmit={onSubmit} className="space-y-4">
                     {/* Email field */}
                     <div
                         style={{
