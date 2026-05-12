@@ -23,7 +23,7 @@ export default async function DashboardPage() {
 
     let eventsQuery = supabase
         .from('events')
-        .select('id, title, description, end_date')
+        .select('id, title, description, end_date, event_members(user_id, dept, profiles(full_name))')
         .order('end_date', { ascending: true })
 
     if (profile?.role === 'Penyelaras' || profile?.role === 'organizer') {
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
 
     const { data: tasks } = await supabase
         .from('tasks')
-        .select('*, events(title), task_assignees(user_id)')
+        .select('*, events(title, event_members(user_id, dept, profiles(full_name))), task_assignees(user_id)')
         .in('event_id', eventIds)
 
     const { data: teamMembers } = await supabase
@@ -108,13 +108,14 @@ export default async function DashboardPage() {
                         </div>
                     </div>
                     <div className="card overflow-hidden">
-                        <GlobalCalendar tasks={tasks || []} currentUserId={user.id} userRole={profile?.role} teamMembers={combinedMembers} />
+                        <GlobalCalendar tasks={tasks || []} activeEvents={events || []} currentUserId={user.id} userRole={profile?.role} teamMembers={combinedMembers} />
                     </div>
                 </section>
 
                 {/* Upcoming Tasks */}
                 <UpcomingObjectives
                     tasks={tasks?.filter(t => t.status !== 'Delivered' && t.deadline).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) || []}
+                    activeEvents={events || []}
                     currentUserId={user.id}
                     userRole={profile?.role}
                 />

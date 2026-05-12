@@ -4,21 +4,33 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-export default function UpcomingObjectives({ tasks, currentUserId, userRole }: {
-    tasks: any[], currentUserId: string, userRole?: string
+export default function UpcomingObjectives({ tasks, activeEvents = [], currentUserId, userRole }: {
+    tasks: any[], activeEvents?: any[], currentUserId: string, userRole?: string
 }) {
     const [showOnlyMine, setShowOnlyMine] = useState(false)
     const [selectedEventId, setSelectedEventId] = useState<string>('all')
+    const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>('all')
 
     let filteredTasks = tasks
 
-    if (userRole === 'organizer') {
-        if (selectedEventId !== 'all') filteredTasks = tasks.filter(t => t.event_id === selectedEventId)
-    } else {
-        if (showOnlyMine) filteredTasks = tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+    if (showOnlyMine) {
+        filteredTasks = filteredTasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+    }
+    if (selectedEventId !== 'all') {
+        filteredTasks = filteredTasks.filter(t => t.event_id === selectedEventId)
+    }
+    if (selectedOrganizerId !== 'all') {
+        filteredTasks = filteredTasks.filter(t =>
+            t.events?.event_members?.some((em: any) => em.dept === 'Organizer' && em.user_id === selectedOrganizerId)
+        )
     }
 
-    const uniqueEvents = Array.from(new Map(tasks.map(t => [t.event_id, t.events?.title])).entries())
+    const uniqueEvents = activeEvents.map(e => [e.id, e.title])
+    const uniqueOrganizers = Array.from(new Map(
+        activeEvents.flatMap(e => e.event_members || [])
+            .filter((em: any) => em.dept === 'Organizer')
+            .map((em: any) => [em.user_id, em.profiles?.full_name || 'Unknown'])
+    ).entries())
 
     const deptDots: Record<string, string> = {
         'Graphic':    'bg-[#6366f1]',
@@ -33,7 +45,18 @@ export default function UpcomingObjectives({ tasks, currentUserId, userRole }: {
                     {userRole === 'organizer' ? 'Assigned Tasks' : 'Upcoming Tasks'}
                 </h2>
 
-                {userRole === 'organizer' ? (
+                <div className="flex flex-wrap items-center gap-3">
+                    <select
+                        value={selectedOrganizerId}
+                        onChange={e => setSelectedOrganizerId(e.target.value)}
+                        className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
+                    >
+                        <option value="all">All organizers</option>
+                        {uniqueOrganizers.map(([id, name]) => (
+                            <option key={id as string} value={id as string}>{name as string}</option>
+                        ))}
+                    </select>
+
                     <select
                         value={selectedEventId}
                         onChange={e => setSelectedEventId(e.target.value)}
@@ -41,10 +64,10 @@ export default function UpcomingObjectives({ tasks, currentUserId, userRole }: {
                     >
                         <option value="all">All projects</option>
                         {uniqueEvents.map(([id, title]) => (
-                            <option key={id} value={id}>{title}</option>
+                            <option key={id as string} value={id as string}>{title as string}</option>
                         ))}
                     </select>
-                ) : (
+
                     <button
                         onClick={() => setShowOnlyMine(!showOnlyMine)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -55,7 +78,7 @@ export default function UpcomingObjectives({ tasks, currentUserId, userRole }: {
                     >
                         {showOnlyMine ? 'My tasks' : 'All tasks'}
                     </button>
-                )}
+                </div>
             </div>
 
             <div className="card overflow-hidden divide-y divide-border">

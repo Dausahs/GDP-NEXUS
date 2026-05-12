@@ -18,14 +18,15 @@ const deptColors: Record<string, string> = {
     'Sculpture':  '#f59e0b',
 }
 
-export default function GlobalCalendar({ tasks, currentUserId, userRole, teamMembers }: {
-    tasks: any[], currentUserId?: string, userRole?: string, teamMembers: any[]
+export default function GlobalCalendar({ tasks, activeEvents = [], currentUserId, userRole, teamMembers }: {
+    tasks: any[], activeEvents?: any[], currentUserId?: string, userRole?: string, teamMembers: any[]
 }) {
     const [isMounted, setIsMounted] = useState(false)
     const [date, setDate] = useState(new Date())
     const [view, setView] = useState<any>(Views.MONTH)
     const [showOnlyMine, setShowOnlyMine] = useState(false)
     const [selectedEventId, setSelectedEventId] = useState<string>('all')
+    const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>('all')
     const [selectedTask, setSelectedTask] = useState<any>(null)
 
     useEffect(() => { setIsMounted(true) }, [])
@@ -42,13 +43,24 @@ export default function GlobalCalendar({ tasks, currentUserId, userRole, teamMem
     )
 
     let filteredTasks = tasks
-    if (userRole === 'organizer') {
-        if (selectedEventId !== 'all') filteredTasks = tasks.filter(t => t.event_id === selectedEventId)
-    } else {
-        if (showOnlyMine) filteredTasks = tasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+    if (showOnlyMine) {
+        filteredTasks = filteredTasks.filter(t => t.task_assignees?.some((a: any) => a.user_id === currentUserId))
+    }
+    if (selectedEventId !== 'all') {
+        filteredTasks = filteredTasks.filter(t => t.event_id === selectedEventId)
+    }
+    if (selectedOrganizerId !== 'all') {
+        filteredTasks = filteredTasks.filter(t => 
+            t.events?.event_members?.some((em: any) => em.dept === 'Organizer' && em.user_id === selectedOrganizerId)
+        )
     }
 
-    const uniqueEvents = Array.from(new Map(tasks.map(t => [t.event_id, t.events?.title])).entries())
+    const uniqueEvents = activeEvents.map(e => [e.id, e.title])
+    const uniqueOrganizers = Array.from(new Map(
+        activeEvents.flatMap(e => e.event_members || [])
+            .filter((em: any) => em.dept === 'Organizer')
+            .map((em: any) => [em.user_id, em.profiles?.full_name || 'Unknown'])
+    ).entries())
 
     const events = filteredTasks
         .filter(t => t.deadline)
@@ -80,32 +92,40 @@ export default function GlobalCalendar({ tasks, currentUserId, userRole, teamMem
         <div className="p-5">
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3 mb-5">
-                {userRole === 'organizer' ? (
-                    <select
-                        value={selectedEventId}
-                        onChange={e => setSelectedEventId(e.target.value)}
-                        className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
-                    >
-                        <option value="all">All projects</option>
-                        {uniqueEvents.map(([id, title]) => (
-                            <option key={id} value={id}>{title}</option>
-                        ))}
-                    </select>
-                ) : (
-                    <button
-                        onClick={() => setShowOnlyMine(!showOnlyMine)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            showOnlyMine
-                            ? 'bg-accent text-white'
-                            : 'bg-bg-subtle text-text-secondary border border-border hover:text-text-primary'
-                        }`}
-                    >
-                        {showOnlyMine ? 'My tasks' : 'All tasks'}
-                    </button>
-                )}
-                {!showOnlyMine && userRole !== 'organizer' && (
-                    <span className="text-xs text-text-muted">{tasks.length} tasks</span>
-                )}
+                <select
+                    value={selectedOrganizerId}
+                    onChange={e => setSelectedOrganizerId(e.target.value)}
+                    className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
+                >
+                    <option value="all">All organizers</option>
+                    {uniqueOrganizers.map(([id, name]) => (
+                        <option key={id as string} value={id as string}>{name as string}</option>
+                    ))}
+                </select>
+
+                <select
+                    value={selectedEventId}
+                    onChange={e => setSelectedEventId(e.target.value)}
+                    className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
+                >
+                    <option value="all">All projects</option>
+                    {uniqueEvents.map(([id, title]) => (
+                        <option key={id as string} value={id as string}>{title as string}</option>
+                    ))}
+                </select>
+
+                <button
+                    onClick={() => setShowOnlyMine(!showOnlyMine)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        showOnlyMine
+                        ? 'bg-accent text-white'
+                        : 'bg-bg-subtle text-text-secondary border border-border hover:text-text-primary'
+                    }`}
+                >
+                    {showOnlyMine ? 'My tasks' : 'All tasks'}
+                </button>
+
+                <span className="text-xs text-text-muted ml-auto">{filteredTasks.length} tasks</span>
             </div>
 
             {/* Legend */}
