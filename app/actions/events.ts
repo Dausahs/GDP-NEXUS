@@ -173,4 +173,35 @@ export async function updateEventOrganizers(eventId: string, organizerIds: strin
     revalidatePath(`/dashboard/events/${eventId}`)
 }
 
+/** Replace the full set of general members (MT/Penyelaras) for an existing event */
+export async function updateEventMembers(eventId: string, memberIds: string[]) {
+    const supabase = await createClient()
 
+    // Security check
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    if (profile?.role !== 'MT' && profile?.role !== 'Penyelaras') throw new Error('Unauthorized')
+
+    // Remove all existing general member entries for this event (dept = 'Member')
+    const { error: delError } = await supabase
+        .from('event_members')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('dept', 'Member')
+
+    if (delError) throw new Error(delError.message)
+
+    // Insert the new set
+    if (memberIds.length > 0) {
+        const entries = memberIds.map(userId => ({
+            event_id: eventId,
+            user_id: userId,
+            dept: 'Member',
+            is_lead: false,
+        }))
+        const { error: insertError } = await supabase.from('event_members').insert(entries)
+        if (insertError) throw new Error(insertError.message)
+    }
+
+    revalidatePath(`/dashboard/events/${eventId}`)
+}

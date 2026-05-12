@@ -6,6 +6,7 @@ import KanbanBoard from '@/components/KanbanBoard'
 import AddTaskModal from '@/components/AddTaskModal'
 import EventCalendar from '@/components/EventCalendar'
 import EventSettingsModal from '@/components/EventSettingsModal'
+import ManageMembersModal from '@/components/ManageMembersModal'
 import UpcomingObjectives from '@/components/UpcomingObjectives'
 import EventSchedule from '@/components/EventSchedule'
 
@@ -67,13 +68,24 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <h1 className="text-2xl md:text-3xl font-display font-semibold text-text-primary tracking-tight leading-tight">
               {eventRes.data.title}
             </h1>
-            {userProfile?.role === 'MT' && (
-              <EventSettingsModal
-                event={eventRes.data}
-                allOrganizers={allOrganizers}
-                currentOrganizers={currentOrganizerIds}
-              />
-            )}
+            <div className="flex items-center gap-1">
+              {userProfile?.role === 'MT' && (
+                <EventSettingsModal
+                  event={eventRes.data}
+                  allOrganizers={allOrganizers}
+                  currentOrganizers={currentOrganizerIds}
+                />
+              )}
+              {(userProfile?.role === 'MT' || userProfile?.role === 'Penyelaras') && (
+                <ManageMembersModal
+                  eventId={id}
+                  allStaff={profilesRes.data || []}
+                  currentMembers={(membersRes.data || [])
+                    .filter((m: any) => m.dept === 'Member')
+                    .map((m: any) => m.user_id)}
+                />
+              )}
+            </div>
           </div>
           {eventRes.data.description && (
             <p className="text-sm text-text-secondary leading-relaxed">
