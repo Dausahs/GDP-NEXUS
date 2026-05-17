@@ -127,3 +127,37 @@ export async function deleteTask(taskId: string, eventId: string) {
     if (error) throw new Error(error.message)
     revalidatePath(`/dashboard/events/${eventId}`)
 }
+
+export async function addSingleTaskJson(taskData: {
+    eventId: string
+    title: string
+    status?: string
+    department?: string
+    description?: string | null
+    deadline?: string | null
+    assigneeIds?: string[]
+}) {
+    const supabase = await createClient()
+    const { eventId, title, status = 'Pending', department = 'Other', description = null, deadline = null, assigneeIds = [] } = taskData
+
+    // 1. Insert the Task
+    const { data: task, error: taskError } = await supabase.from('tasks').insert([
+        { event_id: eventId, title, department, description, deadline, status }
+    ]).select().single()
+
+    if (taskError) throw new Error(taskError.message)
+
+    // 2. Insert the Assignees (if any)
+    if (assigneeIds && assigneeIds.length > 0) {
+        const assigneesToInsert = assigneeIds.map(userId => ({
+            task_id: task.id,
+            user_id: userId
+        }))
+
+        const { error: assignError } = await supabase.from('task_assignees').insert(assigneesToInsert)
+        if (assignError) throw new Error(assignError.message)
+    }
+
+    revalidatePath(`/dashboard/events/${eventId}`)
+    return task
+}

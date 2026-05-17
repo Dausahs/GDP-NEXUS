@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import KanbanBoard from '@/components/KanbanBoard'
 import AddTaskModal from '@/components/AddTaskModal'
+import ImportTasksModal from '@/components/ImportTasksModal'
 import EventCalendar from '@/components/EventCalendar'
 import EventSettingsModal from '@/components/EventSettingsModal'
 import ManageMembersModal from '@/components/ManageMembersModal'
@@ -93,7 +94,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             </p>
           )}
         </div>
-        <div className="w-full md:w-auto">
+        <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
+          {userProfile?.role === 'MT' && (
+            <ImportTasksModal eventId={id} teamMembers={combinedMembers} />
+          )}
           <AddTaskModal eventId={id} teamMembers={combinedMembers} userRole={userProfile?.role} />
         </div>
       </div>
