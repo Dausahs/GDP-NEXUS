@@ -2,7 +2,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -93,10 +93,7 @@ export async function updateEvent(eventId: string, title: string, description: s
 
 export async function deleteEvent(eventId: string) {
     const supabase = await createClient()
-    const adminSupabase = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const adminSupabase = createAdminClient()
     
     // 1. Server-side security check
     const { data: { user } } = await supabase.auth.getUser()
@@ -141,67 +138,121 @@ export async function deleteEvent(eventId: string) {
 }
 
 /** Replace the full set of organizers for an existing event */
-export async function updateEventOrganizers(eventId: string, organizerIds: string[]) {
-    const supabase = await createClient()
+export async function updateEventOrganizers(
+    eventId: string,
+    organizerIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // 1. Auth check via user client
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user?.id)
+            .single()
+        if (profile?.role !== 'MT') {
+            return { success: false, error: 'Unauthorized: only MT can manage organizers' }
+        }
 
-    // Security check
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    if (profile?.role !== 'MT') throw new Error('Unauthorized')
+        // 2. Admin client bypasses RLS for the write operations
+        const admin = createAdminClient()
 
-    // Remove all existing organizer entries for this event
-    const { error: delError } = await supabase
-        .from('event_members')
-        .delete()
-        .eq('event_id', eventId)
-        .eq('dept', 'Organizer')
+        // 3. Delete all existing organizer rows for this event
+        const { error: deleteError } = await admin
+            .from('event_members')
+            .delete()
+            .eq('event_id', eventId)
+            .eq('dept', 'Organizer')
 
-    if (delError) throw new Error(delError.message)
+        if (deleteError) {
+            throw new Error(`Failed to clear existing organizers: ${deleteError.message}`)
+        }
 
-    // Insert the new set
-    if (organizerIds.length > 0) {
+        // 4. If no organizers, stop here
+        if (organizerIds.length === 0) {
+            revalidatePath(`/dashboard/events/${eventId}`)
+            return { success: true }
+        }
+
+        // 5. Bulk insert new organizers
         const entries = organizerIds.map(userId => ({
             event_id: eventId,
             user_id: userId,
             dept: 'Organizer',
             is_lead: false,
         }))
-        const { error: insertError } = await supabase.from('event_members').insert(entries)
-        if (insertError) throw new Error(insertError.message)
-    }
 
-    revalidatePath(`/dashboard/events/${eventId}`)
+        const { error: insertError } = await admin.from('event_members').insert(entries)
+        if (insertError) {
+            throw new Error(`Failed to add new organizers: ${insertError.message}`)
+        }
+
+        revalidatePath(`/dashboard/events/${eventId}`)
+        return { success: true }
+
+    } catch (error: any) {
+        console.error('Error in updateEventOrganizers:', error)
+        return { success: false, error: error.message || 'An unexpected error occurred.' }
+    }
 }
 
 /** Replace the full set of general members (MT/Penyelaras) for an existing event */
-export async function updateEventMembers(eventId: string, memberIds: string[]) {
-    const supabase = await createClient()
+export async function updateEventMembers(
+    eventId: string,
+    memberIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // 1. Auth check via user client
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user?.id)
+            .single()
+        if (profile?.role !== 'MT' && profile?.role !== 'Penyelaras') {
+            return { success: false, error: 'Unauthorized: only MT or Penyelaras can manage members' }
+        }
 
-    // Security check
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    if (profile?.role !== 'MT' && profile?.role !== 'Penyelaras') throw new Error('Unauthorized')
+        // 2. Admin client bypasses RLS for the write operations
+        const admin = createAdminClient()
 
-    // Remove all existing general member entries for this event (dept = 'Member')
-    const { error: delError } = await supabase
-        .from('event_members')
-        .delete()
-        .eq('event_id', eventId)
-        .eq('dept', 'Member')
+        // 3. Delete all existing Member rows for this event
+        const { error: deleteError } = await admin
+            .from('event_members')
+            .delete()
+            .eq('event_id', eventId)
+            .eq('dept', 'Member')
 
-    if (delError) throw new Error(delError.message)
+        if (deleteError) {
+            throw new Error(`Failed to clear existing members: ${deleteError.message}`)
+        }
 
-    // Insert the new set
-    if (memberIds.length > 0) {
+        // 4. If no members, stop here
+        if (memberIds.length === 0) {
+            revalidatePath(`/dashboard/events/${eventId}`)
+            return { success: true }
+        }
+
+        // 5. Bulk insert new members
         const entries = memberIds.map(userId => ({
             event_id: eventId,
             user_id: userId,
             dept: 'Member',
             is_lead: false,
         }))
-        const { error: insertError } = await supabase.from('event_members').insert(entries)
-        if (insertError) throw new Error(insertError.message)
-    }
 
-    revalidatePath(`/dashboard/events/${eventId}`)
+        const { error: insertError } = await admin.from('event_members').insert(entries)
+        if (insertError) {
+            throw new Error(`Failed to add new members: ${insertError.message}`)
+        }
+
+        revalidatePath(`/dashboard/events/${eventId}`)
+        return { success: true }
+
+    } catch (error: any) {
+        console.error('Error in updateEventMembers:', error)
+        return { success: false, error: error.message || 'An unexpected error occurred.' }
+    }
 }

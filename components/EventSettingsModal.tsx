@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { updateEvent, deleteEvent, updateEventOrganizers } from '@/app/actions/events'
 
 export default function EventSettingsModal({
@@ -13,10 +14,12 @@ export default function EventSettingsModal({
     allOrganizers: { id: string, full_name: string }[],
     currentOrganizers: string[],
 }) {
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isUpdatingOrgs, setIsUpdatingOrgs] = useState(false)
+    const [orgError, setOrgError] = useState<string | null>(null)
 
     const [title, setTitle] = useState(event.title)
     const [description, setDescription] = useState(event.description || '')
@@ -42,10 +45,14 @@ export default function EventSettingsModal({
 
     const handleUpdateOrgs = async () => {
         setIsUpdatingOrgs(true)
-        try {
-            await updateEventOrganizers(event.id, selectedOrgs)
-        } catch { alert('Failed to update organizers') }
-        finally { setIsUpdatingOrgs(false) }
+        setOrgError(null)
+        const result = await updateEventOrganizers(event.id, selectedOrgs)
+        setIsUpdatingOrgs(false)
+        if (!result.success) {
+            setOrgError(result.error ?? 'Failed to update organizers')
+        } else {
+            router.refresh()
+        }
     }
 
     const handleDelete = async () => {
@@ -138,6 +145,14 @@ export default function EventSettingsModal({
                                     {isUpdatingOrgs ? 'Saving…' : 'Update'}
                                 </button>
                             </div>
+
+                            {/* Org error */}
+                            {orgError && (
+                                <div className="mb-2 flex items-start gap-2 px-3 py-2.5 bg-danger/10 border border-danger/20 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-danger flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <p className="text-xs text-danger">{orgError}</p>
+                                </div>
+                            )}
 
                             {allOrganizers.length === 0 ? (
                                 <p className="text-xs text-text-muted py-2">No organizer accounts found</p>
