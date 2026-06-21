@@ -62,7 +62,7 @@ export default async function DashboardPage() {
         <div className="min-h-screen bg-bg text-text-primary">
 
             {/* Header */}
-            <header className="border-b border-border bg-bg-elevated px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+            <header className="border-b border-border bg-bg-elevated px-4 md:px-6 py-3 md:py-4 flex items-center justify-between sticky top-0 z-50">
                 <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,10 +78,10 @@ export default async function DashboardPage() {
                     {(profile?.role === 'MT' || profile?.role === 'Penyelaras') && (
                         <Link
                             href="/dashboard/assets"
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            Inventory
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span className="hidden sm:inline">Inventory</span>
                         </Link>
                     )}
                     <div className="hidden md:flex flex-col items-end">
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 py-10 space-y-12">
+            <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8 md:space-y-12">
 
                 {/* Calendar */}
                 <section>
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                         {events?.map((event) => (
                             <Link key={event.id} href={`/dashboard/events/${event.id}`} className="group">
                                 <div className="card p-5 hover:border-border-hover transition-colors h-full flex flex-col">

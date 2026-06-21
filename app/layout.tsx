@@ -29,6 +29,12 @@ export const metadata: Metadata = {
   title: "GDP NEXUS",
   description: "The Ultimate Production Management Hub",
   metadataBase: new URL("https://gdpnexus.netlify.app"),
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

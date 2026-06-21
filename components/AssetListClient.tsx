@@ -141,12 +141,12 @@ export default function AssetListClient({ assets, activeEvents, currentUserId, u
                     <table className="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr className="border-b border-border">
-                                <th className="px-4 py-3 text-xs font-medium text-text-muted w-10 text-center">—</th>
-                                <th className="px-4 py-3 text-xs font-medium text-text-muted">Item</th>
+                                <th className="px-3 md:px-4 py-3 text-xs font-medium text-text-muted w-10 text-center">—</th>
+                                <th className="px-3 md:px-4 py-3 text-xs font-medium text-text-muted">Item</th>
                                 <th className="px-4 py-3 text-xs font-medium text-text-muted hidden md:table-cell">Serial</th>
                                 <th className="px-4 py-3 text-xs font-medium text-text-muted hidden lg:table-cell">Condition</th>
-                                <th className="px-4 py-3 text-xs font-medium text-text-muted">Status</th>
-                                <th className="px-4 py-3 text-xs font-medium text-text-muted text-right">Actions</th>
+                                <th className="px-3 md:px-4 py-3 text-xs font-medium text-text-muted">Status</th>
+                                <th className="px-3 md:px-4 py-3 text-xs font-medium text-text-muted text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -157,7 +157,7 @@ export default function AssetListClient({ assets, activeEvents, currentUserId, u
                                 return (
                                     <tr key={asset.id} className={`hover:bg-bg-subtle transition-colors group ${isSelected ? 'bg-accent/5' : ''}`}>
                                         {/* Select checkbox */}
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-3 md:px-4 py-3 text-center">
                                             {isAvailable ? (
                                                 <button
                                                     onClick={() => toggleSelection(asset.id)}
@@ -175,8 +175,8 @@ export default function AssetListClient({ assets, activeEvents, currentUserId, u
                                         </td>
 
                                         {/* Name + type */}
-                                        <td className="px-4 py-3">
-                                            <p className="font-medium text-text-primary truncate max-w-[180px]">{asset.name}</p>
+                                        <td className="px-3 md:px-4 py-3">
+                                            <p className="font-medium text-text-primary truncate max-w-[130px] md:max-w-[180px]">{asset.name}</p>
                                             <p className="text-[10px] text-text-muted">{asset.type}</p>
                                         </td>
 
@@ -203,7 +203,7 @@ export default function AssetListClient({ assets, activeEvents, currentUserId, u
                                         </td>
 
                                         {/* Status */}
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 md:px-4 py-3">
                                             {isAvailable ? (
                                                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
@@ -223,7 +223,7 @@ export default function AssetListClient({ assets, activeEvents, currentUserId, u
                                         </td>
 
                                         {/* Actions */}
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 md:px-4 py-3">
                                             <div className="flex items-center justify-end gap-1">
                                                 {/* Return — visible to borrower or MT */}
                                                 {!isAvailable && (currentUserId === asset.current_user_id || isMT) && (

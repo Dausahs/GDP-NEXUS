@@ -60,7 +60,7 @@ export default async function AssetsPage() {
                 {/* Active Borrowers */}
                 <section>
                     <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Currently Checked Out</h2>
-                    <ActiveBorrowers assets={assets || []} />
+                    <ActiveBorrowers assets={assets || []} currentUserId={user?.id} userRole={profile?.role} />
                 </section>
 
                 {/* Log */}

@@ -1,5 +1,5 @@
 // components/AssetLedger.tsx
-import { formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 
 export default function AssetLedger({ logs }: { logs: any[] }) {
     if (!logs || logs.length === 0) return null
@@ -39,9 +39,14 @@ export default function AssetLedger({ logs }: { logs: any[] }) {
                             )}
                         </div>
                     </div>
-                    <span className="text-xs text-text-muted flex-shrink-0">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                    </span>
+                    <div className="flex-shrink-0 text-right">
+                        <p className="text-xs font-medium text-text-secondary tabular-nums">
+                            {format(new Date(log.created_at), 'dd MMM yyyy')}
+                        </p>
+                        <p className="text-[10px] text-text-muted tabular-nums mt-0.5">
+                            {format(new Date(log.created_at), 'hh:mm a')}
+                        </p>
+                    </div>
                 </div>
             ))}
         </div>

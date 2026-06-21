@@ -95,6 +95,51 @@ export async function returnAsset(formData: FormData) {
     revalidatePath('/dashboard/assets')
 }
 
+export async function returnAllAssets(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const assetIds = formData.getAll('assetIds') as string[]
+    if (!assetIds || assetIds.length === 0) throw new Error('No assets selected.')
+
+    // Fetch the assets to verify auth and get event_id for logs
+    const { data: assets } = await supabase
+        .from('assets')
+        .select('id, current_user_id, current_event_id, status')
+        .in('id', assetIds)
+        .eq('status', 'In Use')
+
+    if (!assets || assets.length === 0) throw new Error('None of the selected assets are checked out.')
+
+    // Only MT can return items they don't own; others can only return their own
+    if (profile?.role !== 'MT') {
+        const unauthorized = assets.filter(a => a.current_user_id !== user.id)
+        if (unauthorized.length > 0) throw new Error('You can only return items you checked out.')
+    }
+
+    // 1. Bulk update assets back to Available
+    const { error: assetError } = await supabase
+        .from('assets')
+        .update({ status: 'Available', current_event_id: null, current_user_id: null })
+        .in('id', assets.map(a => a.id))
+
+    if (assetError) throw new Error(assetError.message)
+
+    // 2. Write return logs for all items
+    const logs = assets.map(a => ({
+        asset_id: a.id,
+        event_id: a.current_event_id,
+        user_id: user.id,
+        action: 'Return'
+    }))
+    const { error: logError } = await supabase.from('asset_logs').insert(logs)
+    if (logError) throw new Error(logError.message)
+
+    revalidatePath('/dashboard/assets')
+}
+
 export async function updateAsset(formData: FormData) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

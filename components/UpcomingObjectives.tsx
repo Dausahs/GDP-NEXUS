@@ -40,16 +40,16 @@ export default function UpcomingObjectives({ tasks, activeEvents = [], currentUs
 
     return (
         <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col gap-3 mb-4">
                 <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                     {userRole === 'organizer' ? 'Assigned Tasks' : 'Upcoming Tasks'}
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-0.5 custom-scrollbar">
                     <select
                         value={selectedOrganizerId}
                         onChange={e => setSelectedOrganizerId(e.target.value)}
-                        className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
+                        className="bg-bg-subtle border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors flex-shrink-0"
                     >
                         <option value="all">All organizers</option>
                         {uniqueOrganizers.map(([id, name]) => (
@@ -60,7 +60,7 @@ export default function UpcomingObjectives({ tasks, activeEvents = [], currentUs
                     <select
                         value={selectedEventId}
                         onChange={e => setSelectedEventId(e.target.value)}
-                        className="bg-bg-subtle border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors"
+                        className="bg-bg-subtle border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-accent transition-colors flex-shrink-0"
                     >
                         <option value="all">All projects</option>
                         {uniqueEvents.map(([id, title]) => (
@@ -70,7 +70,7 @@ export default function UpcomingObjectives({ tasks, activeEvents = [], currentUs
 
                     <button
                         onClick={() => setShowOnlyMine(!showOnlyMine)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
                             showOnlyMine
                             ? 'bg-accent text-white'
                             : 'bg-bg-subtle text-text-secondary border border-border hover:text-text-primary'
@@ -96,8 +96,8 @@ export default function UpcomingObjectives({ tasks, activeEvents = [], currentUs
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4 shrink-0">
-                                <p suppressHydrationWarning className="text-xs text-text-secondary hidden sm:block">
+                            <div className="flex items-center gap-3 shrink-0">
+                                <p suppressHydrationWarning className="text-xs text-text-secondary">
                                     {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </p>
                                 <Link
