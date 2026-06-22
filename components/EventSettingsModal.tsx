@@ -1,7 +1,7 @@
 // components/EventSettingsModal.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateEvent, deleteEvent, updateEventOrganizers } from '@/app/actions/events'
 
@@ -20,12 +20,23 @@ export default function EventSettingsModal({
     const [isUpdating, setIsUpdating] = useState(false)
     const [isUpdatingOrgs, setIsUpdatingOrgs] = useState(false)
     const [orgError, setOrgError] = useState<string | null>(null)
+    const [updateError, setUpdateError] = useState<string | null>(null)
 
     const [title, setTitle] = useState(event.title)
     const [description, setDescription] = useState(event.description || '')
     const [endDate, setEndDate] = useState(event.end_date || '')
 
     const [selectedOrgs, setSelectedOrgs] = useState<string[]>(currentOrganizers)
+
+    useEffect(() => {
+        if (!isOpen) return
+        setTitle(event.title)
+        setDescription(event.description || '')
+        setEndDate(event.end_date || '')
+        setSelectedOrgs(currentOrganizers)
+        setUpdateError(null)
+        setOrgError(null)
+    }, [isOpen, event.title, event.description, event.end_date, currentOrganizers])
 
     const toggleOrg = (id: string) => {
         setSelectedOrgs(prev =>
@@ -36,11 +47,15 @@ export default function EventSettingsModal({
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsUpdating(true)
-        try {
-            await updateEvent(event.id, title, description, endDate)
-            setIsOpen(false)
-        } catch { alert('Failed to update project') }
-        finally { setIsUpdating(false) }
+        setUpdateError(null)
+        const result = await updateEvent(event.id, title, description, endDate)
+        setIsUpdating(false)
+        if (!result.success) {
+            setUpdateError(result.error ?? 'Failed to update project')
+            return
+        }
+        setIsOpen(false)
+        router.refresh()
     }
 
     const handleUpdateOrgs = async () => {
@@ -119,6 +134,12 @@ export default function EventSettingsModal({
                                     className="w-full bg-bg-subtle border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent transition-colors"
                                 />
                             </div>
+                            {updateError && (
+                                <div className="flex items-start gap-2 px-3 py-2.5 bg-danger/10 border border-danger/20 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-danger flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <p className="text-xs text-danger">{updateError}</p>
+                                </div>
+                            )}
                             <button
                                 type="submit"
                                 disabled={isUpdating}

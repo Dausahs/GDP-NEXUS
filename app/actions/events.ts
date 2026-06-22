@@ -79,16 +79,39 @@ export async function createEvent(
     redirect('/dashboard')
 }
 
-export async function updateEvent(eventId: string, title: string, description: string, endDate: string) {
-    const supabase = await createClient()
-    const { error } = await supabase
-        .from('events')
-        .update({ title, description, end_date: endDate })
-        .eq('id', eventId)
+export async function updateEvent(
+    eventId: string,
+    title: string,
+    description: string,
+    endDate: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user?.id)
+            .single()
+        if (profile?.role !== 'MT') {
+            return { success: false, error: 'Unauthorized: only MT can update project settings' }
+        }
 
-    if (error) throw new Error(error.message)
-    revalidatePath(`/dashboard/events/${eventId}`)
-    revalidatePath('/dashboard')
+        const admin = createAdminClient()
+        const { error } = await admin
+            .from('events')
+            .update({ title, description, end_date: endDate || null })
+            .eq('id', eventId)
+
+        if (error) throw new Error(error.message)
+
+        revalidatePath(`/dashboard/events/${eventId}`)
+        revalidatePath('/dashboard')
+        return { success: true }
+    } catch (error: any) {
+        console.error('Error in updateEvent:', error)
+        return { success: false, error: error.message || 'An unexpected error occurred.' }
+    }
 }
 
 export async function deleteEvent(eventId: string) {
