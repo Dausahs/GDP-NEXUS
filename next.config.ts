@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 1. Tell Next.js to generate a static HTML build (creates the 'out' folder)
+  output: "export",
+
   // Enable React strict mode for better perf insights
   reactStrictMode: true,
 
@@ -11,7 +14,9 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 
   // Image optimization
+  // NOTE: Static exports require images to be unoptimized unless using an external loader
   images: {
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
   },
@@ -25,28 +30,6 @@ const nextConfig: NextConfig = {
       "@dnd-kit/utilities",
       "react-big-calendar",
     ],
-  },
-
-  // Headers for better caching and security
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-XSS-Protection", value: "1; mode=block" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        ],
-      },
-      {
-        // Cache public font files aggressively (these are static by nature)
-        source: "/fonts/(.*)",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
-    ];
   },
 };
 
