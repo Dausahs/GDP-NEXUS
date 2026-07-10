@@ -6,6 +6,7 @@ import { signOut } from '@/app/actions/auth'
 import GlobalCalendar from '@/components/GlobalCalendar'
 import UpcomingObjectives from '@/components/UpcomingObjectives'
 import GlobalSchedule from '@/components/GlobalSchedule'
+import PendingTaskRequests from '@/components/PendingTaskRequests'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,17 @@ export default async function DashboardPage() {
         .from('event_schedules')
         .select('*, profiles(full_name), events(title)')
         .in('event_id', eventIds)
+
+    // Fetch all pending (Requested) tasks across all events — MT only
+    let pendingTasks: any[] = []
+    if (profile?.role === 'MT') {
+        const { data: requested } = await supabase
+            .from('tasks')
+            .select('id, title, description, department, deadline, events!inner(id, title, event_members(user_id, dept, profiles(full_name))), task_assignees(user_id)')
+            .eq('status', 'Requested')
+            .order('deadline', { ascending: true })
+        pendingTasks = requested ?? []
+    }
 
     return (
         <div className="min-h-screen bg-bg text-text-primary">
@@ -122,6 +134,14 @@ export default async function DashboardPage() {
 
                 {/* Global Schedule */}
                 <GlobalSchedule schedules={globalSchedules || []} />
+
+                {/* Pending Task Requests — MT only */}
+                {profile?.role === 'MT' && (
+                    <PendingTaskRequests
+                        pendingTasks={pendingTasks}
+                        teamMembers={combinedMembers}
+                    />
+                )}
 
                 {/* Active Projects */}
                 <section>
