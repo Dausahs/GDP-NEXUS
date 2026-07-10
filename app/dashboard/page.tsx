@@ -7,6 +7,7 @@ import GlobalCalendar from '@/components/GlobalCalendar'
 import UpcomingObjectives from '@/components/UpcomingObjectives'
 import GlobalSchedule from '@/components/GlobalSchedule'
 import PendingTaskRequests from '@/components/PendingTaskRequests'
+import ActiveProjects from '@/components/ActiveProjects'
 
 export const dynamic = 'force-dynamic'
 
@@ -144,60 +145,7 @@ export default async function DashboardPage() {
                 )}
 
                 {/* Active Projects */}
-                <section>
-                    <div className="flex items-center justify-between mb-5">
-                        <div>
-                            <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">Active Projects</h2>
-                            <p className="text-xs text-text-muted">{events?.length || 0} project{events?.length !== 1 ? 's' : ''}</p>
-                        </div>
-                        {profile?.role === 'MT' && (
-                            <Link
-                                href="/dashboard/events/create"
-                                className="flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-medium transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                New project
-                            </Link>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                        {events?.map((event) => (
-                            <Link key={event.id} href={`/dashboard/events/${event.id}`} className="group">
-                                <div className="card p-5 hover:border-border-hover transition-colors h-full flex flex-col">
-                                    <h3 className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors mb-2 truncate">
-                                        {event.title}
-                                    </h3>
-                                    <p className="text-xs text-text-secondary leading-relaxed flex-1 line-clamp-2">
-                                        {event.description || 'No description provided.'}
-                                    </p>
-                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                                        <div>
-                                            <p className="text-[10px] text-text-muted mb-0.5">Deadline</p>
-                                            <p suppressHydrationWarning className="text-xs font-medium text-text-secondary">
-                                                {event.end_date ? new Date(event.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                                            </p>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-md bg-bg-subtle border border-border flex items-center justify-center group-hover:bg-accent group-hover:border-accent transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted group-hover:text-white transition-colors"><polyline points="9 18 15 12 9 6"/></svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-
-                    {(!events || events.length === 0) && (
-                        <div className="card p-16 text-center border-dashed">
-                            <p className="text-sm text-text-muted">No active projects</p>
-                            {profile?.role === 'MT' && (
-                                <Link href="/dashboard/events/create" className="text-xs text-accent hover:underline mt-3 inline-block">
-                                    Create your first project →
-                                </Link>
-                            )}
-                        </div>
-                    )}
-                </section>
+                <ActiveProjects events={events || []} userRole={profile?.role} />
             </main>
         </div>
     )
